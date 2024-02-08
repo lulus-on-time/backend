@@ -1,10 +1,14 @@
 import express, {Express, Request, Response} from "express"
 import {  WebSocketServer  } from "ws"
 import connectionEventListener from './positioning/wss-listener/connection'
+import dotenv from 'dotenv'
 
 const app: Express = express()
-const port = 3000
-const wsPort = 8080
+
+dotenv.config()
+const host = process.env.HOST
+const port = Number(process.env.SERVERPORT)
+const wsPort = Number(process.env.WSSERVERPORT)
 
 app.get('/', async (req: Request, res: Response) => {
     res.status(404).send({
@@ -16,7 +20,7 @@ app.get('/', async (req: Request, res: Response) => {
     })
 })
 
-app.listen(port, () => {
+app.listen(port, host != undefined ? host : 'localhost', () => {
     console.log(`Find Myself server listening on port: ${port}`)
 })
 
