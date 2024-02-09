@@ -15,7 +15,7 @@ app.get('/', async (req: Request, res: Response) => {
     code: 404,
     errors: {
       reason:
-        'This server only accepts websocket connections at port 8080',
+        `This server only accepts websocket connections at port ${wsPort}`,
     },
     data: null,
   });
