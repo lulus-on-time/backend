@@ -21,7 +21,7 @@ app.get('/', async (req: Request, res: Response) => {
   });
 });
 
-app.listen(port, host != undefined ? host : 'localhost', () => {
+app.listen(port, host != undefined ? host : '0.0.0.0', () => {
   console.log(`Find Myself server listening on port: ${port}`);
 });
 
