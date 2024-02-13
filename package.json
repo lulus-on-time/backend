@@ -21,7 +21,6 @@
   "homepage": "https://github.com/lulus-on-time/websocket#readme",
   "dependencies": {
     "dotenv": "^16.4.1",
-    "typescript": "^5.3.3",
     "ws": "^8.16.0"
   },
   "devDependencies": {
@@ -31,6 +30,7 @@
     "@typescript-eslint/parser": "^6.21.0",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
+    "typescript": "^5.3.3",
     "nodemon": "^3.0.3",
     "prettier": "3.2.5",
     "ts-node": "^10.9.2"
