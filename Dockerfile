@@ -13,4 +13,5 @@ CMD [ "node", "dist/app.js" ]
 LABEL name="lulus on time"
 LABEL version="1.0.0"
 
+
 EXPOSE 80

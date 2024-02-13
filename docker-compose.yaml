@@ -5,3 +5,4 @@ services:
       - 80:80
     environment:
       - PORT=80
+    image: websocket:latest
