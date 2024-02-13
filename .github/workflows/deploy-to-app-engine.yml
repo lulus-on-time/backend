@@ -4,11 +4,10 @@ on:
   pull_request:
     types:
       - closed
-  push:
 
 jobs:
   if_merged:
-    # if: github.event.pull_request.merged == true
+    if: github.event.pull_request.merged == true
 
     permissions:
       contents: 'read'
@@ -26,7 +25,6 @@ jobs:
           project_id: 'find-myself-413712'
           workload_identity_provider: 'projects/739978918891/locations/global/workloadIdentityPools/github-actions/providers/github'
           service_account: 'github-actions@find-myself-413712.iam.gserviceaccount.com'
-
 
       - id: 'deploy'
         name: 'Deploy to App Engine'
