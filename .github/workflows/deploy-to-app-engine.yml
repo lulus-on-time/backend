@@ -11,11 +11,13 @@ jobs:
     # if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
+      - name: 'Prerequisite for GCP Authentication'
+        uses: 'actions/checkout@v4'
+
       - id: 'auth'
         name: 'Authenticate to GCP'
         uses: 'google-github-actions/auth@v2'
         with:
-          
           workload_identity_provider: 'projects/739978918891/locations/global/workloadIdentityPools/github-actions'
 
       - id: 'deploy'
