@@ -23,6 +23,7 @@ jobs:
         name: 'Authenticate to GCP'
         uses: 'google-github-actions/auth@v2'
         with:
+          project_id: 'find-myself-413712'
           workload_identity_provider: 'projects/739978918891/locations/global/workloadIdentityPools/github-actions'
 
       - id: 'deploy'
