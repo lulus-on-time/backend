@@ -1,0 +1,7 @@
+services:
+  websocket:
+    build: .
+    ports:
+      - 80:80
+    environment:
+      - PORT=80
