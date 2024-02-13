@@ -24,7 +24,7 @@ jobs:
         uses: 'google-github-actions/auth@v2'
         with:
           project_id: 'find-myself-413712'
-          workload_identity_provider: 'projects/739978918891/locations/global/workloadIdentityPools/github-actions'
+          workload_identity_provider: 'projects/739978918891/locations/global/workloadIdentityPools/github-actions/providers/github-actions'
 
       - id: 'deploy'
         name: 'Deploy to App Engine'
