@@ -1,0 +1,27 @@
+name: Deploy to App Engine
+run-name: Deploy to App Engine
+on:
+  pull_request:
+    types:
+      - closed
+  push:
+
+jobs:
+  if_merged:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - id: 'auth'
+        name: 'Authenticate to GCP'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          
+          workload_identity_provider: 'projects/739978918891/locations/global/workloadIdentityPools/github-actions'
+
+      - id: 'deploy'
+        name: 'Deploy to App Engine'
+        uses: 'google-github-actions/deploy-appengine@v2'
+
+      # Example of using the output
+      - name: print deployed url
+        run: 'echo "deployed at: ${{steps.deploy.outputs.version_url}}"'
