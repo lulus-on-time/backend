@@ -9,6 +9,11 @@ on:
 jobs:
   if_merged:
     # if: github.event.pull_request.merged == true
+
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
     runs-on: ubuntu-latest
     steps:
       - name: 'Prerequisite for GCP Authentication'
