@@ -9,3 +9,26 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model AccessPoint {
+  id Int @id @default(autoincrement())
+  bssid String @unique
+  ssid String
+  description String
+  fingerprints FingerprintDetail[]
+}
+
+model Fingerprint {
+  id Int @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  fingerprintDetails FingerprintDetail[]
+  location String
+}
+
+model FingerprintDetail {
+  id Int @id @default(autoincrement())
+  fingerprint Fingerprint @relation(fields: [fingerprintId], references: [id])
+  fingerprintId Int
+  ap AccessPoint @relation(fields: [bssid], references: [bssid] )
+  bssid String
+}
