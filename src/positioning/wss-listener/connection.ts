@@ -3,7 +3,6 @@ import prisma from '../../db/prisma-client';
 import {
   AccessPoint,
   Fingerprint,
-  FingerprintDetail,
 } from '@prisma/client';
 
 type FingerprintData = {
