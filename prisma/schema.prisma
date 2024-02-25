@@ -1,0 +1,35 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AccessPoint {
+  id Int @id @default(autoincrement())
+  bssid String @unique
+  ssid String
+  description String
+  fingerprints FingerprintDetail[]
+}
+
+model Fingerprint {
+  id Int @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  fingerprintDetails FingerprintDetail[]
+  location String
+}
+
+model FingerprintDetail {
+  id Int @id @default(autoincrement())
+  fingerprint Fingerprint @relation(fields: [fingerprintId], references: [id])
+  fingerprintId Int
+  ap AccessPoint @relation(fields: [bssid], references: [bssid] )
+  bssid String
+  rssi Float
+}

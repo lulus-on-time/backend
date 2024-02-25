@@ -1,9 +1,20 @@
 import WebSocket from 'ws';
+import prisma from '../../db/prisma-client';
+import {
+  AccessPoint,
+  Fingerprint,
+} from '@prisma/client';
 
-const listener = (ws: WebSocket, request: Request) => {
+type FingerprintData = {
+  bssid: string;
+  rssi: number;
+};
+
+const listener = async (ws: WebSocket, //request: Request
+) => {
   console.log('New WebSocket Connection Started');
 
-  ws.on('message', (data, isBinary) => {
+  ws.on('message', async (data, isBinary) => {
     if (isBinary) {
       ws.send(
         JSON.stringify({
@@ -16,15 +27,116 @@ const listener = (ws: WebSocket, request: Request) => {
       return;
     }
 
+    let bssids: string[] = [];
+
+    try {
+      const aps: AccessPoint[] = await prisma.accessPoint.findMany();
+      bssids = aps.map((ap: AccessPoint) => ap.bssid);
+    } catch (e) {
+      console.error(e);
+    }
+
+    let dataAsJson;
+
+    try {
+      dataAsJson = JSON.parse(data.toString());
+    } catch (e) {
+      ws.send(
+        JSON.stringify({
+          errors: {
+            reason: 'Only Accepting JSON',
+          },
+          data: null,
+        }),
+      );
+      return;
+    }
+
+    if (dataAsJson['reason'] != 'fingerprint') {
+      ws.send(
+        JSON.stringify({
+          errors: {
+            reason: 'Only accepting fingerprint data',
+          },
+          data: null,
+        }),
+      );
+      return;
+    }
+
+    let location: string
+    let fingerprints: FingerprintData[]
+
+    try {
+      location = dataAsJson['data']['location'];
+      fingerprints =
+        dataAsJson['data']['fingerprints'];
+    } catch(e) {
+      ws.send(
+        JSON.stringify({
+          errors: {
+            reason: 'No Fingerprint Data Found',
+          },
+          data: null,
+        }),
+      );
+      return;
+    }
+
+    if (fingerprints === undefined || location === undefined) {
+      ws.send(
+        JSON.stringify({
+          errors: {
+            reason: 'No Fingerprint Data Found',
+          },
+          data: null,
+        }),
+      );
+      return
+    }
+
+    
+    const acceptedFingerprints = fingerprints.filter((fingerprint) =>
+      bssids.includes(fingerprint.bssid),
+    );
+
+    let newFingerprintInDb: Fingerprint;
+
+    try {
+      newFingerprintInDb = await prisma.fingerprint.create({
+        data: {
+          location: location,
+          fingerprintDetails: {
+            createMany: {
+              data: acceptedFingerprints,
+            },
+          },
+        },
+      });
+    } catch (e) {
+      console.error(e);
+      ws.send(
+        JSON.stringify({
+          errors: {
+            reason: 'Error creating new fingerprint record',
+          },
+          data: null,
+        }),
+      );
+      return;
+    }
+
     ws.send(
       JSON.stringify({
         errors: null,
         data: {
-          location: `Message received: ${data.toString()}`,
+          location: `New fingerprint entry created with id ${newFingerprintInDb.id}`,
         },
       }),
     );
-    console.log(`Message received: ${data.toString()}`);
+    console.log(
+      `New fingerprint entry created with id ${newFingerprintInDb.id}`,
+    );
   });
 
   ws.on('close', (code, reason) => {
