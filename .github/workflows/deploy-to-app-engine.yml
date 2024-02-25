@@ -29,6 +29,9 @@ jobs:
       - id: 'deploy'
         name: 'Deploy to App Engine'
         uses: 'google-github-actions/deploy-appengine@v2'
+        with:
+          env_vars: |-
+            DATABASE_URL=${{secrets.DATABASE_URL}}
         env:
           CLOUDSDK_APP_CLOUD_BUILD_TIMEOUT: 1800 # 30 minutes
 
