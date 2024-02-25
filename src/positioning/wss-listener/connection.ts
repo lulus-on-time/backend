@@ -10,7 +10,8 @@ type FingerprintData = {
   rssi: number;
 };
 
-const listener = async (ws: WebSocket, request: Request) => {
+const listener = async (ws: WebSocket, //request: Request
+) => {
   console.log('New WebSocket Connection Started');
 
   ws.on('message', async (data, isBinary) => {
