@@ -31,4 +31,5 @@ model FingerprintDetail {
   fingerprintId Int
   ap AccessPoint @relation(fields: [bssid], references: [bssid] )
   bssid String
+  rssi Float
 }
