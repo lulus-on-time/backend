@@ -2,7 +2,6 @@ import WebSocket from 'ws';
 import prisma from '../../db/prisma-client';
 import {
   AccessPoint,
-  Fingerprint,
 } from '@prisma/client';
 
 type FingerprintData = {
@@ -95,12 +94,25 @@ const listener = async (ws: WebSocket, //request: Request
       return
     }
 
+    console.log(fingerprints)
+
     
     const acceptedFingerprints = fingerprints.filter((fingerprint) =>
       bssids.includes(fingerprint.bssid),
     );
 
-    let newFingerprintInDb: Fingerprint;
+    let newFingerprintInDb: {
+      fingerprintDetails: {
+          id: number;
+          fingerprintId: number;
+          bssid: string;
+          rssi: number;
+      }[];
+  } & {
+      id: number;
+      createdAt: Date;
+      location: string;
+  }
 
     try {
       newFingerprintInDb = await prisma.fingerprint.create({
@@ -112,6 +124,9 @@ const listener = async (ws: WebSocket, //request: Request
             },
           },
         },
+        include: {
+          fingerprintDetails: true
+        }
       });
     } catch (e) {
       console.error(e);
@@ -131,6 +146,7 @@ const listener = async (ws: WebSocket, //request: Request
         errors: null,
         data: {
           location: `New fingerprint entry created with id ${newFingerprintInDb.id}`,
+          capturedAPs: newFingerprintInDb.fingerprintDetails.length
         },
       }),
     );
