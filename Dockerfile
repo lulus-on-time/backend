@@ -2,16 +2,31 @@ FROM node:20.11.0
 
 WORKDIR /websocket
 
+ENV DATABASE_URL="postgresql://postgres:findmyself123@34.75.54.53/mydb?schema=findmyself"
+
 COPY package.json .
 
-RUN npm i --omit=dev
+COPY tsconfig.json .
 
-ADD dist ./dist
+COPY prisma ./prisma
+
+COPY src ./src
+
+RUN npm i
+
+RUN npm run build
+
+RUN rm -rf tsconfig.json
+
+RUN rm -rf ./prisma
+
+RUN rm -rf ./src
+
+RUN npm i --omit=dev
 
 CMD [ "node", "dist/app.js" ]
 
 LABEL name="lulus on time"
 LABEL version="1.0.0"
-
 
 EXPOSE 80
