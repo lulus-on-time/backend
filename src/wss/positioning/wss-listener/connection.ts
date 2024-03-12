@@ -1,15 +1,14 @@
 import WebSocket from 'ws';
-import prisma from '../../db/prisma-client';
-import {
-  AccessPoint,
-} from '@prisma/client';
+import prisma from '../../../db/prisma-client';
+import { AccessPoint } from '@prisma/client';
 
 type FingerprintData = {
   bssid: string;
   rssi: number;
 };
 
-const listener = async (ws: WebSocket, //request: Request
+const listener = async (
+  ws: WebSocket, //request: Request
 ) => {
   console.log('New WebSocket Connection Started');
 
@@ -63,14 +62,13 @@ const listener = async (ws: WebSocket, //request: Request
       return;
     }
 
-    let location: string
-    let fingerprints: FingerprintData[]
+    let location: string;
+    let fingerprints: FingerprintData[];
 
     try {
       location = dataAsJson['data']['location'];
-      fingerprints =
-        dataAsJson['data']['fingerprints'];
-    } catch(e) {
+      fingerprints = dataAsJson['data']['fingerprints'];
+    } catch (e) {
       ws.send(
         JSON.stringify({
           errors: {
@@ -91,28 +89,27 @@ const listener = async (ws: WebSocket, //request: Request
           data: null,
         }),
       );
-      return
+      return;
     }
 
-    console.log(fingerprints)
+    console.log(fingerprints);
 
-    
     const acceptedFingerprints = fingerprints.filter((fingerprint) =>
       bssids.includes(fingerprint.bssid),
     );
 
     let newFingerprintInDb: {
       fingerprintDetails: {
-          id: number;
-          fingerprintId: number;
-          bssid: string;
-          rssi: number;
+        id: number;
+        fingerprintId: number;
+        bssid: string;
+        rssi: number;
       }[];
-  } & {
+    } & {
       id: number;
       createdAt: Date;
       location: string;
-  }
+    };
 
     try {
       newFingerprintInDb = await prisma.fingerprint.create({
@@ -125,8 +122,8 @@ const listener = async (ws: WebSocket, //request: Request
           },
         },
         include: {
-          fingerprintDetails: true
-        }
+          fingerprintDetails: true,
+        },
       });
     } catch (e) {
       console.error(e);
@@ -146,7 +143,7 @@ const listener = async (ws: WebSocket, //request: Request
         errors: null,
         data: {
           location: `New fingerprint entry created with id ${newFingerprintInDb.id}`,
-          capturedAPs: newFingerprintInDb.fingerprintDetails.length
+          capturedAPs: newFingerprintInDb.fingerprintDetails.length,
         },
       }),
     );

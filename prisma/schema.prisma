@@ -16,6 +16,8 @@ model AccessPoint {
   ssid String
   description String
   fingerprints FingerprintDetail[]
+  coordinate Coordinate @relation(fields: [coordinateId], references: [id])
+  coordinateId Int @unique
 }
 
 model Fingerprint {
@@ -28,8 +30,35 @@ model Fingerprint {
 model FingerprintDetail {
   id Int @id @default(autoincrement())
   fingerprint Fingerprint @relation(fields: [fingerprintId], references: [id])
-  fingerprintId Int
+  fingerprintId Int @unique
   ap AccessPoint @relation(fields: [bssid], references: [bssid] )
   bssid String
   rssi Float
+}
+
+model Floor {
+  id Int @id @default(autoincrement())
+  name String
+  level Int
+  rooms Room[]
+}
+
+model Room {
+  id Int @id @default(autoincrement())
+  name String
+  floor Floor @relation(fields: [floorId], references: [id])
+  floorId Int 
+  coordinates Coordinate[] @relation(name: "coordinateOf")
+  centroid Coordinate @relation(name: "centroidOf", fields: [centroidId], references: [id])
+  centroidId Int @unique
+}
+
+model Coordinate {
+  id Int @id @default(autoincrement())
+  x Float
+  y Float
+  room Room? @relation(fields: [roomId], references: [id], name: "coordinateOf")
+  roomId Int?
+  centroidOf Room? @relation(name: "centroidOf")
+  ap AccessPoint?
 }
