@@ -5,6 +5,7 @@ import { AccessPoint } from '@prisma/client';
 type FingerprintData = {
   bssid: string;
   rssi: number;
+  ssid: string;
 };
 
 const listener = async (
@@ -92,7 +93,36 @@ const listener = async (
       return;
     }
 
-    console.log(fingerprints);
+    console.log(`Fingerprints Submitted: ${fingerprints}`);
+
+    // insert new fingerprints
+    const newFp = fingerprints.filter((fingerprint) => {
+      return (
+        !bssids.includes(fingerprint.bssid) &&
+        (fingerprint.ssid == 'Hotspot UI' ||
+          fingerprint.ssid == 'AndroidWifi')
+      );
+    });
+
+    console.log(`New Access Point found in fingerprint: ${newFp}`);
+
+    await newFp.forEach(async (fingerprint) => {
+      const result = await prisma.accessPoint.create({
+        data: {
+          bssid: fingerprint.bssid,
+          description: 'Inserted through websocket',
+          ssid: fingerprint.ssid,
+          coordinate: {
+            create: {
+              x: 0,
+              y: 0,
+            },
+          },
+        },
+      });
+      bssids.push(result.bssid);
+      console.log(`New Access Point Created: ${result}`);
+    });
 
     const acceptedFingerprints = fingerprints.filter((fingerprint) =>
       bssids.includes(fingerprint.bssid),
@@ -117,7 +147,14 @@ const listener = async (
           location: location,
           fingerprintDetails: {
             createMany: {
-              data: acceptedFingerprints,
+              data: acceptedFingerprints.map(
+                (acceptedFingerprints) => {
+                  return {
+                    bssid: acceptedFingerprints.bssid,
+                    rssi: acceptedFingerprints.rssi,
+                  };
+                },
+              ),
             },
           },
         },
@@ -137,6 +174,10 @@ const listener = async (
       );
       return;
     }
+
+    console.log(
+      `New Fingerprint: ${JSON.stringify(newFingerprintInDb)}`,
+    );
 
     ws.send(
       JSON.stringify({
