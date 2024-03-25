@@ -7,7 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev-api": "nodemon src/api/app.ts",
     "dev-wss": "nodemon src/wss/app.ts",
-    "build": "npx tsc && npx prisma generate"
+    "build": "npx tsc && npx prisma generate",
+    "prisma-migrate": "npx prisma migrate dev"
   },
   "repository": {
     "type": "git",
