@@ -1,6 +1,7 @@
 import WebSocket from 'ws';
 import prisma from '../../../db/prisma-client';
 import { AccessPoint } from '@prisma/client';
+import { io } from 'socket.io-client';
 
 type FingerprintData = {
   bssid: string;
@@ -12,6 +13,13 @@ const listener = async (
   ws: WebSocket, //request: Request
 ) => {
   console.log('New WebSocket Connection Started');
+
+  const client = io('http://127.0.0.1:5000', { forceNew: true });
+
+  client.on('message', (location: string) => {
+    console.log(location);
+    ws.send(JSON.stringify({ location: location }));
+  });
 
   ws.on('message', async (data, isBinary) => {
     if (isBinary) {
@@ -25,6 +33,8 @@ const listener = async (
       );
       return;
     }
+
+    client.emit('predict', JSON.stringify({ a: 'a' }));
 
     let bssids: string[] = [];
 
@@ -198,12 +208,14 @@ const listener = async (
       code: `${code}`,
       reason: `${reason}`,
     });
+    client.close();
   });
 
   ws.on('error', (err) => {
     console.error({
       err,
     });
+    client.close();
   });
 };
 
