@@ -16,7 +16,7 @@ model AccessPoint {
   ssid String
   description String
   fingerprints FingerprintDetail[]
-  coordinate Coordinate @relation(fields: [coordinateId], references: [id])
+  coordinate Coordinate @relation(fields: [coordinateId], references: [id], onDelete: Cascade)
   coordinateId Int @unique
 }
 
@@ -24,7 +24,8 @@ model Fingerprint {
   id Int @id @default(autoincrement())
   createdAt DateTime @default(now())
   fingerprintDetails FingerprintDetail[]
-  location String
+  location Room @relation(fields: [locationId], references: [id])
+  locationId Int
 }
 
 model FingerprintDetail {
@@ -51,6 +52,8 @@ model Room {
   coordinates Coordinate[] @relation(name: "coordinateOf")
   centroid Coordinate @relation(name: "centroidOf", fields: [centroidId], references: [id])
   centroidId Int @unique
+  fingerprints Fingerprint[]
+  schedules Schedule[]
 }
 
 model Coordinate {
@@ -61,4 +64,37 @@ model Coordinate {
   roomId Int?
   centroidOf Room? @relation(name: "centroidOf")
   ap AccessPoint?
+}
+
+model User {
+  npm Int @id
+  subjects Subject[]
+}
+
+model Subject {
+  id Int @id @default(autoincrement())
+  name String
+  schedules Schedule[]
+  students User[]
+}
+
+model Schedule {
+  id Int @id @default(autoincrement())
+  room Room @relation(fields: [roomId], references: [id])
+  roomId Int
+  Subject Subject @relation(fields: [subjectId], references: [id])
+  subjectId Int
+  startTime DateTime @db.Timestamptz()
+  endTime DateTime @db.Timestamptz()
+  day dayOfWeek
+}
+
+enum dayOfWeek {
+  Monday
+  Tuesday
+  Wednesday
+  Thursday
+  Friday
+  Saturday
+  Sunday
 }
