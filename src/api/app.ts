@@ -1,6 +1,6 @@
 import express from 'express';
 import dotenv from 'dotenv';
-import roomRouter from './room/router';
+import roomRouter from './floor/router';
 
 dotenv.config();
 const app = express();
@@ -17,4 +17,4 @@ app.get('/', async (req, res) => {
   res.send('Hello world');
 });
 
-app.use('/rooms', roomRouter);
+app.use('/floors', roomRouter);

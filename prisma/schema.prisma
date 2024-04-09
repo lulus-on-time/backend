@@ -39,8 +39,9 @@ model FingerprintDetail {
 model Floor {
   id Int @id @default(autoincrement())
   name String
-  level Int
+  level Int @unique
   rooms Room[]
+  corridors Corridor[]
 }
 
 model Room {
@@ -48,17 +49,28 @@ model Room {
   name String
   floor Floor @relation(fields: [floorId], references: [id])
   floorId Int 
-  coordinates Coordinate[] @relation(name: "coordinateOf")
-  centroid Coordinate @relation(name: "centroidOf", fields: [centroidId], references: [id])
-  centroidId Int @unique
+  coordinates Coordinate[] @relation(name: "roomCoordinateOf")
+  poiX Float
+  poiY Float
+}
+
+model Corridor {
+  id Int @id @default(autoincrement())
+  name String
+  floor Floor @relation(fields: [floorId], references: [id])
+  floorId Int 
+  coordinates Coordinate[] @relation(name: "corridorCoordinateOf")
+  poiX Float
+  poiY Float
 }
 
 model Coordinate {
   id Int @id @default(autoincrement())
   x Float
   y Float
-  room Room? @relation(fields: [roomId], references: [id], name: "coordinateOf")
+  room Room? @relation(fields: [roomId], references: [id], name: "roomCoordinateOf")
   roomId Int?
-  centroidOf Room? @relation(name: "centroidOf")
+  corridor Corridor? @relation(fields: [corridorId], references: [id], name: "corridorCoordinateOf")
+  corridorId Int?
   ap AccessPoint?
 }

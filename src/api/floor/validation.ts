@@ -1,7 +1,7 @@
 import Joi from 'joi';
-import { RoomRequest } from './type';
+import { FloorRequest } from './type';
 
-const validation: Joi.ObjectSchema<RoomRequest> = Joi.object({
+const validation: Joi.ObjectSchema<FloorRequest> = Joi.object({
   floor: Joi.object({
     name: Joi.string().required(),
     level: Joi.number().required()
@@ -13,7 +13,8 @@ const validation: Joi.ObjectSchema<RoomRequest> = Joi.object({
         type: Joi.string().valid('Feature').required(),
         properties: Joi.object({
           name: Joi.string().required(),
-          centroid: Joi.array().items(Joi.number()).required(),
+          poi: Joi.array().items(Joi.number()).required(),
+          category: Joi.string().valid('room', 'corridor').required()
         }).required(),
         geometry: Joi.object({
           type: Joi.string().valid('Polygon').required(),

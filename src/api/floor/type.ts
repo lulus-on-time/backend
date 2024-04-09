@@ -1,4 +1,4 @@
-type RoomRequest = {
+type FloorRequest = {
   floor: {
     name: string;
     level: number;
@@ -7,8 +7,9 @@ type RoomRequest = {
   features: {
     type: string;
     properties: {
+      category: string,
       name: string;
-      centroid: number[];
+      poi: number[];
     };
     geometry: {
       type: string;
@@ -17,4 +18,4 @@ type RoomRequest = {
   }[];
 };
 
-export { RoomRequest };
+export { FloorRequest };
