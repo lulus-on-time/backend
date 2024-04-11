@@ -132,66 +132,14 @@ router.get('/', async (req, res) => {
       },
     });
 
+    let floor: Floor | null = null;
+
     if (floorId != undefined) {
-      const floor = await prisma.floor.findUnique({
+      floor = await prisma.floor.findUnique({
         where: {
           id: parseInt(floorId),
         },
       });
-
-      const response = {
-        floor: {
-          id: floor?.id,
-          name: floor?.name,
-          level: floor?.level,
-        },
-        type: 'Feature Collection',
-        features: rooms
-          .map((room) => {
-            return {
-              type: 'Feature',
-              properties: {
-                id: room.id,
-                name: room.name,
-                poi: [room.poiX, room.poiY],
-                category: 'room',
-              },
-              geometry: {
-                type: 'polygon',
-                coordinates: [
-                  room.coordinates.map((coordinate) => [
-                    coordinate.x,
-                    coordinate.y,
-                  ]),
-                ],
-              },
-            };
-          })
-          .concat(
-            corridors.map((corridor) => {
-              return {
-                type: 'Feature',
-                properties: {
-                  id: corridor.id,
-                  name: corridor.name,
-                  poi: [corridor.poiX, corridor.poiY],
-                  category: 'corridor',
-                },
-                geometry: {
-                  type: 'polygon',
-                  coordinates: [
-                    corridor.coordinates.map((coordinate) => [
-                      coordinate.x,
-                      coordinate.y,
-                    ]),
-                  ],
-                },
-              };
-            }),
-          ),
-      };
-      res.send(response);
-      return;
     }
 
     const response = {
@@ -241,7 +189,19 @@ router.get('/', async (req, res) => {
         ),
     };
 
-    res.send(response);
+    if (floor != null) {
+      res.send({
+        floor: {
+          name: floor.name,
+          id: floor.id,
+          level: floor.level,
+        },
+        geojson: response,
+      });
+      return;
+    }
+
+    res.send({ geojson: response });
   } catch (e) {
     console.log(e);
     res.status(500).send(e);
