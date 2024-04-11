@@ -12,12 +12,18 @@ datasource db {
 
 model AccessPoint {
   id Int @id @default(autoincrement())
-  bssid String @unique
-  ssid String
+  networks Network[]
   description String
-  fingerprints FingerprintDetail[]
   coordinate Coordinate @relation(fields: [coordinateId], references: [id])
   coordinateId Int @unique
+}
+
+model Network {
+  bssid String @unique
+  ssid String
+  fingerprints FingerprintDetail[]
+  ap AccessPoint @relation(fields: [apId], references: [id])
+  apId Int
 }
 
 model Fingerprint {
@@ -31,7 +37,7 @@ model FingerprintDetail {
   id Int @id @default(autoincrement())
   fingerprint Fingerprint @relation(fields: [fingerprintId], references: [id])
   fingerprintId Int @unique
-  ap AccessPoint @relation(fields: [bssid], references: [bssid] )
+  network Network @relation(fields: [bssid], references: [bssid] )
   bssid String
   rssi Float
 }
