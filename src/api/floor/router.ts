@@ -40,11 +40,9 @@ router.post('/create', async (req, res) => {
       e instanceof PrismaClientKnownRequestError &&
       e.code === 'P2002'
     ) {
-      res
-        .status(400)
-        .send({
-          error: { status: 400, message: 'Floor level exists' },
-        });
+      res.status(400).send({
+        error: { status: 400, message: 'Floor level exists' },
+      });
     } else {
       res.status(500).send('An unknown error occurred');
     }
@@ -134,6 +132,68 @@ router.get('/', async (req, res) => {
       },
     });
 
+    if (floorId != undefined) {
+      const floor = await prisma.floor.findUnique({
+        where: {
+          id: parseInt(floorId),
+        },
+      });
+
+      const response = {
+        floor: {
+          id: floor?.id,
+          name: floor?.name,
+          level: floor?.level,
+        },
+        type: 'Feature Collection',
+        features: rooms
+          .map((room) => {
+            return {
+              type: 'Feature',
+              properties: {
+                id: room.id,
+                name: room.name,
+                poi: [room.poiX, room.poiY],
+                category: 'room',
+              },
+              geometry: {
+                type: 'polygon',
+                coordinates: [
+                  room.coordinates.map((coordinate) => [
+                    coordinate.x,
+                    coordinate.y,
+                  ]),
+                ],
+              },
+            };
+          })
+          .concat(
+            corridors.map((corridor) => {
+              return {
+                type: 'Feature',
+                properties: {
+                  id: corridor.id,
+                  name: corridor.name,
+                  poi: [corridor.poiX, corridor.poiY],
+                  category: 'corridor',
+                },
+                geometry: {
+                  type: 'polygon',
+                  coordinates: [
+                    corridor.coordinates.map((coordinate) => [
+                      coordinate.x,
+                      coordinate.y,
+                    ]),
+                  ],
+                },
+              };
+            }),
+          ),
+      };
+      res.send(response);
+      return;
+    }
+
     const response = {
       type: 'Feature Collection',
       features: rooms
@@ -144,6 +204,7 @@ router.get('/', async (req, res) => {
               name: room.name,
               poi: [room.poiX, room.poiY],
               category: 'room',
+              id: room.id,
             },
             geometry: {
               type: 'polygon',
@@ -164,6 +225,7 @@ router.get('/', async (req, res) => {
                 name: corridor.name,
                 poi: [corridor.poiX, corridor.poiY],
                 category: 'corridor',
+                id: corridor.id,
               },
               geometry: {
                 type: 'polygon',
