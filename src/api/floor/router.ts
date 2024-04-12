@@ -143,7 +143,7 @@ router.get('/', async (req, res) => {
     }
 
     const response = {
-      type: 'Feature Collection',
+      type: 'FeatureCollection',
       features: rooms
         .map((room) => {
           return {
@@ -155,7 +155,7 @@ router.get('/', async (req, res) => {
               id: room.id,
             },
             geometry: {
-              type: 'polygon',
+              type: 'Polygon',
               coordinates: [
                 room.coordinates.map((coordinate) => [
                   coordinate.x,
@@ -176,7 +176,7 @@ router.get('/', async (req, res) => {
                 id: corridor.id,
               },
               geometry: {
-                type: 'polygon',
+                type: 'Polygon',
                 coordinates: [
                   corridor.coordinates.map((coordinate) => [
                     coordinate.x,
@@ -190,11 +190,25 @@ router.get('/', async (req, res) => {
     };
 
     if (floor != null) {
+      const coordinates = [
+        ...rooms.map((room) => room.coordinates).flat(),
+        ...corridors.map((corridor) => corridor.coordinates).flat(),
+      ];
+
+      const maxX = Math.max(
+        ...coordinates.map((coordinate) => coordinate.x),
+      );
+      const maxY = Math.max(
+        ...coordinates.map((coordinate) => coordinate.y),
+      );
+
       res.send({
         floor: {
           name: floor.name,
           id: floor.id,
           level: floor.level,
+          maxX: maxX,
+          maxY: maxY,
         },
         geojson: response,
       });
