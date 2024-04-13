@@ -16,6 +16,8 @@ model AccessPoint {
   description String
   coordinate Coordinate @relation(fields: [coordinateId], references: [id])
   coordinateId Int @unique
+  room Room @relation(fields: [roomId], references: [id])
+  roomId Int
 }
 
 model Network {
@@ -47,7 +49,6 @@ model Floor {
   name String
   level Int @unique
   rooms Room[]
-  corridors Corridor[]
 }
 
 model Room {
@@ -58,16 +59,13 @@ model Room {
   coordinates Coordinate[] @relation(name: "roomCoordinateOf")
   poiX Float
   poiY Float
+  roomType RoomType
+  accessPoints AccessPoint[]
 }
 
-model Corridor {
-  id Int @id @default(autoincrement())
-  name String
-  floor Floor @relation(fields: [floorId], references: [id])
-  floorId Int 
-  coordinates Coordinate[] @relation(name: "corridorCoordinateOf")
-  poiX Float
-  poiY Float
+enum RoomType {
+  room
+  corridor
 }
 
 model Coordinate {
@@ -76,7 +74,5 @@ model Coordinate {
   y Float
   room Room? @relation(fields: [roomId], references: [id], name: "roomCoordinateOf")
   roomId Int?
-  corridor Corridor? @relation(fields: [corridorId], references: [id], name: "corridorCoordinateOf")
-  corridorId Int?
   ap AccessPoint?
 }

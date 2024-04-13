@@ -1,16 +1,8 @@
 import express from 'express';
 import prisma from '../../db/prisma-client';
 import validation from './validation';
-import { Room, Corridor, Floor } from '@prisma/client';
-import { FloorRequest } from './type';
+import { Room, Floor, RoomType } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
-
-type RoomData = {
-  name: string;
-  coordinates: { x: number; y: number }[];
-  poiX: number;
-  poiY: number;
-};
 
 const router = express.Router();
 
@@ -53,39 +45,36 @@ router.post('/create', async (req, res) => {
   }
 
   const features = validationValue.features;
-  const response: (Room | Corridor)[] = [];
+  const response: Room[] = [];
 
   for (const feature of features) {
-    const entity = feature.properties.category;
-
-    if (entity == 'room') {
-      const roomData = extractRoomData(feature);
+    try {
       const room = await prisma.room.create({
         data: {
-          name: roomData.name,
-          poiX: roomData.poiX,
-          poiY: roomData.poiY,
+          name: feature.properties.name,
+          poiX: feature.properties.poi[0],
+          poiY: feature.properties.poi[1],
+          roomType:
+            feature.properties.category == 'room'
+              ? RoomType.room
+              : RoomType.corridor,
           coordinates: {
-            createMany: { data: roomData.coordinates },
+            createMany: {
+              data: feature.geometry.coordinates[0].map(
+                (coordinate) => {
+                  return { x: coordinate[0], y: coordinate[1] };
+                },
+              ),
+            },
           },
           floor: { connect: { id: newFloor.id } },
         },
       });
       response.push(room);
-    } else {
-      const corridorData = extractRoomData(feature);
-      const corridor = await prisma.corridor.create({
-        data: {
-          name: corridorData.name,
-          poiX: corridorData.poiX,
-          poiY: corridorData.poiY,
-          coordinates: {
-            createMany: { data: corridorData.coordinates },
-          },
-          floor: { connect: { id: newFloor.id } },
-        },
-      });
-      response.push(corridor);
+    } catch (e) {
+      console.log(e);
+      res.status(500).send('An unknown error occurred');
+      return;
     }
   }
   res.send(response);
@@ -96,24 +85,6 @@ router.get('/', async (req, res) => {
 
   try {
     const rooms = await prisma.room.findMany({
-      where: {
-        floorId: {
-          equals: isNaN(parseInt(floorId))
-            ? undefined
-            : parseInt(floorId),
-          not: isNaN(parseInt(floorId)) ? -1 : undefined,
-        },
-      },
-      include: {
-        coordinates: {
-          orderBy: {
-            id: 'asc',
-          },
-        },
-        floor: true,
-      },
-    });
-    const corridors = await prisma.corridor.findMany({
       where: {
         floorId: {
           equals: isNaN(parseInt(floorId))
@@ -144,55 +115,31 @@ router.get('/', async (req, res) => {
 
     const response = {
       type: 'FeatureCollection',
-      features: rooms
-        .map((room) => {
-          return {
-            type: 'Feature',
-            properties: {
-              name: room.name,
-              poi: [room.poiX, room.poiY],
-              category: 'room',
-              id: room.id,
-            },
-            geometry: {
-              type: 'Polygon',
-              coordinates: [
-                room.coordinates.map((coordinate) => [
-                  coordinate.x,
-                  coordinate.y,
-                ]),
-              ],
-            },
-          };
-        })
-        .concat(
-          corridors.map((corridor) => {
-            return {
-              type: 'Feature',
-              properties: {
-                name: corridor.name,
-                poi: [corridor.poiX, corridor.poiY],
-                category: 'corridor',
-                id: corridor.id,
-              },
-              geometry: {
-                type: 'Polygon',
-                coordinates: [
-                  corridor.coordinates.map((coordinate) => [
-                    coordinate.x,
-                    coordinate.y,
-                  ]),
-                ],
-              },
-            };
-          }),
-        ),
+      features: rooms.map((room) => {
+        return {
+          type: 'Feature',
+          properties: {
+            name: room.name,
+            poi: [room.poiX, room.poiY],
+            category: room.roomType.toString(),
+            id: room.id,
+          },
+          geometry: {
+            type: 'Polygon',
+            coordinates: [
+              room.coordinates.map((coordinate) => [
+                coordinate.x,
+                coordinate.y,
+              ]),
+            ],
+          },
+        };
+      }),
     };
 
     if (floor != null) {
       const coordinates = [
         ...rooms.map((room) => room.coordinates).flat(),
-        ...corridors.map((corridor) => corridor.coordinates).flat(),
       ];
 
       const maxX = Math.max(
@@ -239,25 +186,5 @@ router.get('/short', async (req, res) => {
 
   return;
 });
-
-function extractRoomData(
-  feature: FloorRequest['features'][number],
-): RoomData {
-  const roomName = feature.properties.name;
-  const roomCoordinates = feature.geometry.coordinates[0].map(
-    (coordinate: number[]) => {
-      return { x: coordinate[0], y: coordinate[1] };
-    },
-  );
-
-  const result: RoomData = {
-    name: roomName,
-    coordinates: roomCoordinates,
-    poiX: feature.properties.poi[0],
-    poiY: feature.properties.poi[1],
-  };
-
-  return result;
-}
 
 export default router;
