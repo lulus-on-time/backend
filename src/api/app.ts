@@ -2,6 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import roomRouter from './floor/router';
 import cors from 'cors';
+import apRouter from './aps/router';
 
 dotenv.config();
 const app = express();
@@ -20,3 +21,4 @@ app.get('/', async (req, res) => {
 });
 
 app.use('/floors', roomRouter);
+app.use('/aps', apRouter);
