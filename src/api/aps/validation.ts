@@ -2,7 +2,6 @@ import Joi from 'joi';
 import AccessPointRequest from './type';
 
 const validation: Joi.ObjectSchema<AccessPointRequest> = Joi.object({
-  floorId: Joi.number().required(),
   type: Joi.string().valid('FeatureCollection').required(),
   features: Joi.array()
     .items(

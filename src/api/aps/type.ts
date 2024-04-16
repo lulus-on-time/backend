@@ -1,5 +1,4 @@
 type AccessPointRequest = {
-    floorId: number,
     type: string,
     features: {
         type: string,
