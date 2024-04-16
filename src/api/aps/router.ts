@@ -1,6 +1,5 @@
 import express from 'express';
 import validation from './validation';
-import { AccessPoint } from '@prisma/client';
 import prisma from '../../db/prisma-client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
@@ -26,19 +25,14 @@ router.post('/create', async (req, res) => {
     return;
   }
 
-  const response: AccessPoint[] = [];
 
   for (const feature of validationValue.features) {
     try {
       const ap = await prisma.accessPoint.create({
         data: {
-          description: 'Test Description',
-          coordinate: {
-            create: {
-              x: feature.geometry.coordinates[0],
-              y: feature.geometry.coordinates[1],
-            },
-          },
+          description: feature.properties.description,
+          xCoordinate: feature.geometry.coordinates[0],
+          yCoordinate: feature.geometry.coordinates[1],
           room: {
             connect: {
               id: feature.properties.spaceId,
@@ -58,7 +52,7 @@ router.post('/create', async (req, res) => {
           },
         },
       });
-      response.push(ap);
+      console.log(ap)
     } catch (e) {
 
       if (e instanceof PrismaClientKnownRequestError && e.code === 'P2002') {
@@ -71,7 +65,7 @@ router.post('/create', async (req, res) => {
       return;
     }
   }
-  res.status(200).send(response);
+  res.sendStatus(200);
 });
 
 router.get('/', async (req, res) => {
@@ -142,7 +136,6 @@ router.get('/:id', async (req, res) => {
           }
         },
         networks: true,
-        coordinate: true
       }
     })
 
@@ -168,7 +161,7 @@ router.get('/:id', async (req, res) => {
             },
             geometry: {
               type: 'Point',
-              coordinates: [ap.coordinate.x, ap.coordinate.y]
+              coordinates: [ap.xCoordinate, ap.yCoordinate]
             }
           }
         })

@@ -277,7 +277,8 @@
               "ssid": "Wifi",
               "bssid": "AB:CD:EF:12:34:60"
             }
-          ]
+          ],
+          "description": "Sebelah Kanan Pintu"
         },
         "geometry": {
           "type": "Point",
@@ -297,7 +298,8 @@
               "ssid": "Wifi",
               "bssid": "AB:CD:EF:12:34:62"
             }
-          ]
+          ],
+          "description": "Sebelah Kiri Pintu"
         },
         "geometry": {
           "type": "Point",
@@ -347,18 +349,18 @@
       "key": 1,
       "floor": {
         "id": 1,
-        "name": "2",
-        "level": 3,
+        "name": "ABCD",
+        "level": 0,
         "apTotal": 2
       },
-      "locationName": "Room ABCD"
+      "locationName": "DEFG"
     },
     {
       "key": 2,
       "floor": {
         "id": 1,
-        "name": "2",
-        "level": 3,
+        "name": "ABCD",
+        "level": 0,
         "apTotal": 2
       },
       "locationName": "Corridor XYZ"
@@ -382,7 +384,7 @@
   {
     "floor": {
       "id": 1,
-      "name": "1"
+      "name": "ABCD"
     },
     "geojson": {
       "type": "FeatureCollection",
@@ -390,8 +392,8 @@
         {
           "type": "Feature",
           "properties": {
-            "spaceId": 3,
-            "spaceName": "Room ABCD",
+            "spaceId": 2,
+            "spaceName": "DEFG",
             "bssids": [
               {
                 "bssid": "AB:CD:EF:12:34:5F",
@@ -411,8 +413,8 @@
         {
           "type": "Feature",
           "properties": {
-            "spaceId": 4,
-            "spaceName": "Room EFGH",
+            "spaceId": 3,
+            "spaceName": "Corridor XYZ",
             "bssids": [
               {
                 "bssid": "AB:CD:EF:12:34:61",
@@ -426,11 +428,11 @@
           },
           "geometry": {
             "type": "Point",
-            "coordinates": [250.056992, 600.988323]
+            "coordinates": [400.056992, 750.988323]
           }
         }
       ]
     }
   }
   ```
-  </details>
+    </details>

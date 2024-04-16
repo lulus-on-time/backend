@@ -8,6 +8,7 @@ type AccessPointRequest = {
                 bssid: string,
                 ssid: string,
             }[],
+            description: string,
         },
         geometry: {
             type: string,

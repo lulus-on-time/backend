@@ -1,7 +1,7 @@
 import express from 'express';
 import prisma from '../../db/prisma-client';
 import validation from './validation';
-import { Room, Floor, RoomType } from '@prisma/client';
+import { Floor, RoomType } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 const router = express.Router();
@@ -45,7 +45,6 @@ router.post('/create', async (req, res) => {
   }
 
   const features = validationValue.features;
-  const response: Room[] = [];
 
   for (const feature of features) {
     try {
@@ -70,14 +69,14 @@ router.post('/create', async (req, res) => {
           floor: { connect: { id: newFloor.id } },
         },
       });
-      response.push(room);
+      console.log(room)
     } catch (e) {
       console.log(e);
       res.status(500).send('An unknown error occurred');
       return;
     }
   }
-  res.send(response);
+  res.sendStatus(200);
 });
 
 router.get('/', async (req, res) => {

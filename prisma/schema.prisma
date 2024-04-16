@@ -14,10 +14,10 @@ model AccessPoint {
   id Int @id @default(autoincrement())
   networks Network[]
   description String
-  coordinate Coordinate @relation(fields: [coordinateId], references: [id])
-  coordinateId Int @unique
   room Room @relation(fields: [roomId], references: [id])
   roomId Int
+  xCoordinate Float
+  yCoordinate Float
 }
 
 model Network {
@@ -72,7 +72,6 @@ model Coordinate {
   id Int @id @default(autoincrement())
   x Float
   y Float
-  room Room? @relation(fields: [roomId], references: [id], name: "roomCoordinateOf")
-  roomId Int?
-  ap AccessPoint?
+  room Room @relation(fields: [roomId], references: [id], name: "roomCoordinateOf")
+  roomId Int
 }
