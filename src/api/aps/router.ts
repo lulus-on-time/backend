@@ -63,6 +63,7 @@ router.post('/create', async (req, res) => {
 
       if (e instanceof PrismaClientKnownRequestError && e.code === 'P2002') {
         res.status(400).send({status: 400, message: 'Attempting to create a network with BSSID that already exists'});
+        return;
       }
 
       console.log(e);
@@ -94,6 +95,7 @@ router.get('/', async (req, res) => {
     const apResponse: ApResponse[] = [];
 
     for (const floor of floors) {
+      const apTotal = floor.rooms.map((room) => room.accessPoints).flat().length;
       for (const room of floor.rooms) {
         for (const ap of room.accessPoints) {
           apResponse.push({
@@ -102,7 +104,7 @@ router.get('/', async (req, res) => {
               id: floor.id,
               name: floor.name,
               level: floor.level,
-              apTotal: room.accessPoints.length,
+              apTotal: apTotal,
             },
             locationName: room.name,
           });

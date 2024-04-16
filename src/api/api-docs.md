@@ -328,3 +328,44 @@
   <code>Unknown Error Ocurred</code>
 
 </details>
+
+<details>
+<summary><code>GET</code> <code><b>/aps</b></code> <code>(Get all access points in the system)</code></summary>
+
+##### Parameters
+- No Parameters
+
+##### Response Body
+- 200 (OK) [array of access points information for table view]
+  - Key represents id of access point
+  - each access point keeps information on the floor it is located in such as floor id, name, level, and the total access point in that floor
+  - each access point object keeps the room / corridor it is located in
+
+  Response Example:
+  ```json
+  [
+    {
+        "key": 1,
+        "floor": {
+            "id": 1,
+            "name": "2",
+            "level": 3,
+            "apTotal": 2
+        },
+        "locationName": "Room ABCD"
+    },
+    {
+        "key": 2,
+        "floor": {
+            "id": 1,
+            "name": "2",
+            "level": 3,
+            "apTotal": 2
+        },
+        "locationName": "Corridor XYZ"
+    },
+  ]
+  ```
+
+
+</details>
