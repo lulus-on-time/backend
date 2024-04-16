@@ -80,7 +80,7 @@ model Coordinate {
 }
 
 model User {
-  npm Int @id
+  npm String @id
   subjects Subject[]
 }
 
