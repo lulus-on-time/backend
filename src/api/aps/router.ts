@@ -17,7 +17,6 @@ type ApResponse = {
 const router = express.Router();
 
 router.post('/create', async (req, res) => {
-  console.log(req.body.features[0].properties.bssids[0].bssid);
   const { error: validationError, value: validationValue } =
     validation.validate(req.body);
 
@@ -64,9 +63,8 @@ router.post('/create', async (req, res) => {
       res.status(500).send('An unknown error occurred');
       return;
     }
-
-    res.status(200).send(response);
   }
+  res.status(200).send(response);
 });
 
 router.get('/', async (req, res) => {
