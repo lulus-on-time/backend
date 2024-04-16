@@ -237,45 +237,94 @@
 
 ##### Response
 
-- 200 (OK) [List of room / corridor detailed saved in database]
-
-```json
-[
+- 200 (OK) [No Response Body]
+- 400 (Bad Request) [Attempt to add floor level that already exists]
+  ```json
   {
-    "id": 9,
-    "name": "ABCD",
-    "floorId": 3,
-    "poiX": 475.7370116745971,
-    "poiY": 402.2121372031662,
-    "roomType": "room"
-  },
-  {
-    "id": 10,
-    "name": "EFGH",
-    "floorId": 3,
-    "poiX": 475.7190904799454,
-    "poiY": 601.714511873351,
-    "roomType": "room"
-  },
-  {
-    "id": 11,
-    "name": "HIJK",
-    "floorId": 3,
-    "poiX": 154.9981713066682,
-    "poiY": 48.92084432717678,
-    "roomType": "corridor"
-  },
-  {
-    "id": 12,
-    "name": "LMNOP",
-    "floorId": 3,
-    "poiX": 438.7812660532264,
-    "poiY": 151.6585751978892,
-    "roomType": "room"
+    "error": {
+        "status": 400,
+        "message": "Floor level exists"
+    }
   }
-]
-```
+  ```
+- 500 (Internal Server Error) [Unknown error not yet handled]
+
+  <code>Unknown Error Ocurred</code>
+
 
 </details>
 
 ### Access Point
+
+<details><summary><code>POST</code> <code><b>/aps/create</b></code> <code>(Create Access Point per floor)</code></summary>
+
+##### Request Body
+- json [geojson of access points in a floor, with spaceId referring to the roomId (room or corridor) that an access point is in]
+    ```json
+    {
+    "type": "FeatureCollection",
+    "features": [
+        {
+        "type": "Feature",
+        "properties": {
+            "spaceId": 2,
+            "bssids": [
+            {
+                "ssid": "Wifi",
+                "bssid": "AB:CD:EF:12:34:5F"
+            },
+            {
+                "ssid": "Wifi",
+                "bssid": "AB:CD:EF:12:34:60"
+            }
+            ]
+        },
+        "geometry": {
+            "type": "Point",
+            "coordinates": [
+            288.056992,
+            766.988323
+            ]
+        }
+        },
+        {
+        "type": "Feature",
+        "properties": {
+            "spaceId": 3,
+            "bssids": [
+            {
+                "ssid": "Wifi",
+                "bssid": "AB:CD:EF:12:34:61"
+            },
+            {
+                "ssid": "Wifi",
+                "bssid": "AB:CD:EF:12:34:62"
+            }
+            ]
+        },
+        "geometry": {
+            "type": "Point",
+            "coordinates": [
+            400.056992,
+            750.988323
+            ]
+        }
+        }
+    ]
+    }
+    ```
+
+##### Response
+- 200 (OK) [No Response Body]
+- 400 (Bad Request) [Duplicate BSSID Input]
+  ```json
+  {
+    "status": 400,
+    "message": "Attempting to create a network with BSSID that already exists"
+  }
+  ```
+- 500 (Internal Server Error) [Unknown error not yet handled]
+
+  <code>Unknown Error Ocurred</code>
+
+</details>
