@@ -2,6 +2,7 @@ import express from 'express';
 import validation from './validation';
 import { AccessPoint } from '@prisma/client';
 import prisma from '../../db/prisma-client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 type ApResponse = {
   key: number;
@@ -59,6 +60,11 @@ router.post('/create', async (req, res) => {
       });
       response.push(ap);
     } catch (e) {
+
+      if (e instanceof PrismaClientKnownRequestError && e.code === 'P2002') {
+        res.status(400).send({status: 400, message: 'Attempting to create a network with BSSID that already exists'});
+      }
+
       console.log(e);
       res.status(500).send('An unknown error occurred');
       return;
