@@ -242,15 +242,14 @@
   ```json
   {
     "error": {
-        "status": 400,
-        "message": "Floor level exists"
+      "status": 400,
+      "message": "Floor level exists"
     }
   }
   ```
 - 500 (Internal Server Error) [Unknown error not yet handled]
 
   <code>Unknown Error Ocurred</code>
-
 
 </details>
 
@@ -259,62 +258,58 @@
 <details><summary><code>POST</code> <code><b>/aps/create</b></code> <code>(Create Access Point per floor)</code></summary>
 
 ##### Request Body
+
 - json [geojson of access points in a floor, with spaceId referring to the roomId (room or corridor) that an access point is in]
-    ```json
-    {
+  ```json
+  {
     "type": "FeatureCollection",
     "features": [
-        {
+      {
         "type": "Feature",
         "properties": {
-            "spaceId": 2,
-            "bssids": [
+          "spaceId": 2,
+          "bssids": [
             {
-                "ssid": "Wifi",
-                "bssid": "AB:CD:EF:12:34:5F"
+              "ssid": "Wifi",
+              "bssid": "AB:CD:EF:12:34:5F"
             },
             {
-                "ssid": "Wifi",
-                "bssid": "AB:CD:EF:12:34:60"
+              "ssid": "Wifi",
+              "bssid": "AB:CD:EF:12:34:60"
             }
-            ]
+          ]
         },
         "geometry": {
-            "type": "Point",
-            "coordinates": [
-            288.056992,
-            766.988323
-            ]
+          "type": "Point",
+          "coordinates": [288.056992, 766.988323]
         }
-        },
-        {
+      },
+      {
         "type": "Feature",
         "properties": {
-            "spaceId": 3,
-            "bssids": [
+          "spaceId": 3,
+          "bssids": [
             {
-                "ssid": "Wifi",
-                "bssid": "AB:CD:EF:12:34:61"
+              "ssid": "Wifi",
+              "bssid": "AB:CD:EF:12:34:61"
             },
             {
-                "ssid": "Wifi",
-                "bssid": "AB:CD:EF:12:34:62"
+              "ssid": "Wifi",
+              "bssid": "AB:CD:EF:12:34:62"
             }
-            ]
+          ]
         },
         "geometry": {
-            "type": "Point",
-            "coordinates": [
-            400.056992,
-            750.988323
-            ]
+          "type": "Point",
+          "coordinates": [400.056992, 750.988323]
         }
-        }
+      }
     ]
-    }
-    ```
+  }
+  ```
 
 ##### Response
+
 - 200 (OK) [No Response Body]
 - 400 (Bad Request) [Duplicate BSSID Input]
   ```json
@@ -333,39 +328,109 @@
 <summary><code>GET</code> <code><b>/aps</b></code> <code>(Get all access points in the system)</code></summary>
 
 ##### Parameters
+
 - No Parameters
 
 ##### Response Body
+
 - 200 (OK) [array of access points information for table view]
+
   - Key represents id of access point
   - each access point keeps information on the floor it is located in such as floor id, name, level, and the total access point in that floor
   - each access point object keeps the room / corridor it is located in
 
   Response Example:
+
   ```json
   [
     {
-        "key": 1,
-        "floor": {
-            "id": 1,
-            "name": "2",
-            "level": 3,
-            "apTotal": 2
-        },
-        "locationName": "Room ABCD"
+      "key": 1,
+      "floor": {
+        "id": 1,
+        "name": "2",
+        "level": 3,
+        "apTotal": 2
+      },
+      "locationName": "Room ABCD"
     },
     {
-        "key": 2,
-        "floor": {
-            "id": 1,
-            "name": "2",
-            "level": 3,
-            "apTotal": 2
-        },
-        "locationName": "Corridor XYZ"
-    },
+      "key": 2,
+      "floor": {
+        "id": 1,
+        "name": "2",
+        "level": 3,
+        "apTotal": 2
+      },
+      "locationName": "Corridor XYZ"
+    }
   ]
   ```
 
-
 </details>
+
+<details>
+<summary><code>GET</code> <code><b>/aps/{floorId}</b></code> <code>(Get all access points in a floor)</code></summary>
+
+##### Parameters
+
+- floorId (required) [int] Id of floor to get all access points from
+
+### Response
+
+- 200 (OK)
+  ```json
+  {
+    "floor": {
+      "id": 1,
+      "name": "1"
+    },
+    "geojson": {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "properties": {
+            "spaceId": 3,
+            "spaceName": "Room ABCD",
+            "bssids": [
+              {
+                "bssid": "AB:CD:EF:12:34:5F",
+                "ssid": "Wifi"
+              },
+              {
+                "bssid": "AB:CD:EF:12:34:60",
+                "ssid": "Wifi"
+              }
+            ]
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [288.056992, 766.988323]
+          }
+        },
+        {
+          "type": "Feature",
+          "properties": {
+            "spaceId": 4,
+            "spaceName": "Room EFGH",
+            "bssids": [
+              {
+                "bssid": "AB:CD:EF:12:34:61",
+                "ssid": "Wifi"
+              },
+              {
+                "bssid": "AB:CD:EF:12:34:62",
+                "ssid": "Wifi"
+              }
+            ]
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [250.056992, 600.988323]
+          }
+        }
+      ]
+    }
+  }
+  ```
+  </details>
