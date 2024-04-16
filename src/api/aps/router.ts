@@ -120,4 +120,67 @@ router.get('/', async (req, res) => {
   }
 });
 
+router.get('/:id', async (req, res) => {
+  const id = parseInt(req.params.id);
+
+  if (id == undefined) {
+    res.status(400).send('Invalid ID');
+    return;
+  }
+
+  try {
+    const aps = await prisma.accessPoint.findMany({
+      where: {
+        room: {
+          floorId: id
+        }
+      },
+      include: {
+        room: {
+          include: {
+            floor: true
+          }
+        },
+        networks: true,
+        coordinate: true
+      }
+    })
+
+    const response = {
+      floor: {
+        id: aps[0].room.floor.id,
+        name: aps[0].room.floor.name,
+      },
+      geojson: {
+        type: 'FeatureCollection',
+        features: aps.map((ap) => {
+          return {
+            type: 'Feature',
+            properties: {
+              spaceId: ap.room.id,
+              spaceName: ap.room.name,
+              bssids: ap.networks.map((network) => {
+                return {
+                  bssid: network.bssid,
+                  ssid: network.ssid
+                }
+              })
+            },
+            geometry: {
+              type: 'Point',
+              coordinates: [ap.coordinate.x, ap.coordinate.y]
+            }
+          }
+        })
+      }
+    }
+
+    res.send(response);
+  } catch (e) {
+    console.log(e);
+    res.status(500).send('An unknown error occurred');
+    return;
+  }
+})
+
 export default router;
