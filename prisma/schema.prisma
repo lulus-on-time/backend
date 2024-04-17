@@ -21,7 +21,7 @@ model AccessPoint {
 }
 
 model Network {
-  bssid String @unique
+  bssid String @id
   ssid String
   fingerprints FingerprintDetail[]
   ap AccessPoint @relation(fields: [apId], references: [id])
@@ -32,7 +32,8 @@ model Fingerprint {
   id Int @id @default(autoincrement())
   createdAt DateTime @default(now())
   fingerprintDetails FingerprintDetail[]
-  location String
+  location Room @relation(fields: [locationId], references: [id])
+  locationId Int
 }
 
 model FingerprintDetail {
@@ -61,6 +62,8 @@ model Room {
   poiY Float
   roomType RoomType
   accessPoints AccessPoint[]
+  fingerprints Fingerprint[]
+  schedules Schedule[]
 }
 
 enum RoomType {
@@ -74,4 +77,26 @@ model Coordinate {
   y Float
   room Room @relation(fields: [roomId], references: [id], name: "roomCoordinateOf")
   roomId Int
+}
+
+model User {
+  npm String @id
+  subjects Subject[]
+}
+
+model Subject {
+  id Int @id @default(autoincrement())
+  name String
+  schedules Schedule[]
+  students User[]
+}
+
+model Schedule {
+  id Int @id @default(autoincrement())
+  room Room @relation(fields: [roomId], references: [id])
+  roomId Int
+  Subject Subject @relation(fields: [subjectId], references: [id])
+  subjectId Int
+  startTime DateTime @db.Timestamptz()
+  endTime DateTime @db.Timestamptz()
 }
