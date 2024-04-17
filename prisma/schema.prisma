@@ -21,7 +21,7 @@ model AccessPoint {
 }
 
 model Network {
-  bssid String @unique
+  bssid String @id
   ssid String
   fingerprints FingerprintDetail[]
   ap AccessPoint @relation(fields: [apId], references: [id])
