@@ -2,7 +2,7 @@ type SubjectRequestBody = {
     name: string,
     students: string[],
     schedules: {
-        day: number,
+        day: string,
         start: string,
         end: string,
         roomId: number

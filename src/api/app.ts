@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import roomRouter from './floor/router';
 import cors from 'cors';
 import apRouter from './aps/router';
-
+import subjectRouter from './subjects/router';
 dotenv.config();
 const app = express();
 const port = process.env.PORT;
@@ -22,3 +22,4 @@ app.get('/', async (req, res) => {
 
 app.use('/floors', roomRouter);
 app.use('/aps', apRouter);
+app.use('/subjects', subjectRouter)
