@@ -1,25 +1,28 @@
 import WebSocket from 'ws';
 import prisma from '../../../db/prisma-client';
-import { AccessPoint } from '@prisma/client';
 import { io } from 'socket.io-client';
-
-type FingerprintData = {
-  bssid: string;
-  rssi: number;
-  ssid: string;
-};
+import validation from '../validation';
+import { randomUUID } from 'crypto';
 
 const listener = async (
   ws: WebSocket, //request: Request
 ) => {
-  console.log('New WebSocket Connection Started');
+  const uuid = randomUUID();
+  console.log(`Client connected with id: ${uuid}`);
 
   const client = io('http://127.0.0.1:5000', { forceNew: true });
 
-  client.on('message', (location: string) => {
-    console.log(location);
-    ws.send(JSON.stringify({ location: location }));
-  });
+  client.on(
+    `predict_${uuid}`,
+    (response: {
+      prediction: { label: string; probability: number }[];
+    }) => {
+      console.log(response);
+      ws.send(
+        JSON.stringify({ location: response.prediction[0].label }),
+      );
+    },
+  );
 
   ws.on('message', async (data, isBinary) => {
     if (isBinary) {
@@ -34,173 +37,102 @@ const listener = async (
       return;
     }
 
-    client.emit('predict', JSON.stringify({ a: 'a' }));
-
-    let bssids: string[] = [];
-
-    try {
-      const aps: AccessPoint[] = await prisma.accessPoint.findMany();
-      bssids = aps.map((ap: AccessPoint) => ap.bssid);
-    } catch (e) {
-      console.error(e);
-    }
-
-    let dataAsJson;
+    let dataAsJson: unknown;
 
     try {
       dataAsJson = JSON.parse(data.toString());
     } catch (e) {
+      console.log(e);
       ws.send(
         JSON.stringify({
-          errors: {
-            reason: 'Only Accepting JSON',
-          },
+          errors: { reason: 'Invalid JSON Data' },
           data: null,
         }),
       );
       return;
     }
 
-    if (dataAsJson['reason'] != 'fingerprint') {
-      ws.send(
-        JSON.stringify({
-          errors: {
-            reason: 'Only accepting fingerprint data',
-          },
-          data: null,
-        }),
-      );
+    const { error: validationError, value: validationValue } =
+      validation.validate(dataAsJson);
+
+    if (validationError) {
+      console.log(validationError.message);
+      ws.send(validationError.message);
       return;
     }
 
-    let location: string;
-    let fingerprints: FingerprintData[];
-
-    try {
-      location = dataAsJson['data']['location'];
-      fingerprints = dataAsJson['data']['fingerprints'];
-    } catch (e) {
-      ws.send(
-        JSON.stringify({
-          errors: {
-            reason: 'No Fingerprint Data Found',
-          },
-          data: null,
-        }),
-      );
-      return;
+    for (const fingerprint of validationValue.data.fingerprints) {
+      fingerprint.rssi = Math.pow(10, fingerprint.rssi / 10);
     }
 
-    if (fingerprints === undefined || location === undefined) {
-      ws.send(
-        JSON.stringify({
-          errors: {
-            reason: 'No Fingerprint Data Found',
-          },
-          data: null,
-        }),
-      );
-      return;
-    }
-
-    console.log(`Fingerprints Submitted: ${fingerprints}`);
-
-    // insert new fingerprints
-    const newFp = fingerprints.filter((fingerprint) => {
-      return (
-        !bssids.includes(fingerprint.bssid) &&
-        (fingerprint.ssid == 'Hotspot UI' ||
-          fingerprint.ssid == 'AndroidWifi')
-      );
-    });
-
-    console.log(`New Access Point found in fingerprint: ${newFp}`);
-
-    await newFp.forEach(async (fingerprint) => {
-      const result = await prisma.accessPoint.create({
-        data: {
-          bssid: fingerprint.bssid,
-          description: 'Inserted through websocket',
-          ssid: fingerprint.ssid,
-          coordinate: {
-            create: {
-              x: 0,
-              y: 0,
-            },
-          },
-        },
-      });
-      bssids.push(result.bssid);
-      console.log(`New Access Point Created: ${result}`);
-    });
-
-    const acceptedFingerprints = fingerprints.filter((fingerprint) =>
-      bssids.includes(fingerprint.bssid),
-    );
-
-    let newFingerprintInDb: {
-      fingerprintDetails: {
-        id: number;
-        fingerprintId: number;
-        bssid: string;
-        rssi: number;
-      }[];
-    } & {
-      id: number;
-      createdAt: Date;
-      location: string;
-    };
-
-    try {
-      newFingerprintInDb = await prisma.fingerprint.create({
-        data: {
-          location: location,
-          fingerprintDetails: {
-            createMany: {
-              data: acceptedFingerprints.map(
-                (acceptedFingerprints) => {
-                  return {
-                    bssid: acceptedFingerprints.bssid,
-                    rssi: acceptedFingerprints.rssi,
-                  };
-                },
-              ),
-            },
-          },
-        },
-        include: {
-          fingerprintDetails: true,
-        },
-      });
-    } catch (e) {
-      console.error(e);
-      ws.send(
-        JSON.stringify({
-          errors: {
-            reason: 'Error creating new fingerprint record',
-          },
-          data: null,
-        }),
-      );
-      return;
-    }
-
-    console.log(
-      `New Fingerprint: ${JSON.stringify(newFingerprintInDb)}`,
-    );
-
-    ws.send(
+    client.emit(
+      'predict',
       JSON.stringify({
-        errors: null,
-        data: {
-          location: `New fingerprint entry created with id ${newFingerprintInDb.id}`,
-          capturedAPs: newFingerprintInDb.fingerprintDetails.length,
-        },
+        clientId: uuid,
+        data: validationValue.data.fingerprints,
       }),
     );
-    console.log(
-      `New fingerprint entry created with id ${newFingerprintInDb.id}`,
-    );
+
+    if (!validationValue.npm) {
+      console.log('Unauthenticated user');
+      return;
+    }
+
+    try {
+      const now = new Date()
+      const schedule = await prisma.schedule.findFirstOrThrow({
+        where: {
+          
+          startTime: {
+            lte: now
+          },
+          endTime: {
+            gte: now
+          },
+          Subject: {
+            students: {
+              some: {
+                npm: validationValue.npm,
+              },
+            },
+          },
+        },
+      });
+
+      const networks = await prisma.network.findMany({});
+      const bssids = networks.map((network) => network.bssid);
+
+      const filteredFingerprints =
+        validationValue.data.fingerprints.filter((fingerprint) =>
+          bssids.includes(fingerprint.bssid),
+        );
+
+      if (filteredFingerprints.length === 0) {
+        console.log('No valid fingerprints');
+        return;
+      }
+
+      const fingerprints = await prisma.fingerprint.create({
+        data: {
+          createdAt: new Date(),
+          location: {
+            connect: {
+              id: schedule.roomId,
+            },
+          },
+          fingerprintDetails: {
+            createMany: {
+              data: filteredFingerprints,
+            },
+          },
+        },
+      });
+
+      console.log(fingerprints);
+    } catch (e) {
+      console.log(e);
+      return;
+    }
   });
 
   ws.on('close', (code, reason) => {

@@ -12,26 +12,35 @@ datasource db {
 
 model AccessPoint {
   id Int @id @default(autoincrement())
-  bssid String @unique
-  ssid String
+  networks Network[]
   description String
+  room Room @relation(fields: [roomId], references: [id])
+  roomId Int
+  xCoordinate Float
+  yCoordinate Float
+}
+
+model Network {
+  bssid String @id
+  ssid String
   fingerprints FingerprintDetail[]
-  coordinate Coordinate @relation(fields: [coordinateId], references: [id])
-  coordinateId Int @unique
+  ap AccessPoint @relation(fields: [apId], references: [id])
+  apId Int
 }
 
 model Fingerprint {
   id Int @id @default(autoincrement())
   createdAt DateTime @default(now())
   fingerprintDetails FingerprintDetail[]
-  location String
+  location Room @relation(fields: [locationId], references: [id])
+  locationId Int
 }
 
 model FingerprintDetail {
   id Int @id @default(autoincrement())
   fingerprint Fingerprint @relation(fields: [fingerprintId], references: [id])
   fingerprintId Int @unique
-  ap AccessPoint @relation(fields: [bssid], references: [bssid] )
+  network Network @relation(fields: [bssid], references: [bssid] )
   bssid String
   rssi Float
 }
@@ -39,7 +48,7 @@ model FingerprintDetail {
 model Floor {
   id Int @id @default(autoincrement())
   name String
-  level Int
+  level Int @unique
   rooms Room[]
 }
 
@@ -48,17 +57,46 @@ model Room {
   name String
   floor Floor @relation(fields: [floorId], references: [id])
   floorId Int 
-  coordinates Coordinate[] @relation(name: "coordinateOf")
-  centroid Coordinate @relation(name: "centroidOf", fields: [centroidId], references: [id])
-  centroidId Int @unique
+  coordinates Coordinate[] @relation(name: "roomCoordinateOf")
+  poiX Float
+  poiY Float
+  roomType RoomType
+  accessPoints AccessPoint[]
+  fingerprints Fingerprint[]
+  schedules Schedule[]
+}
+
+enum RoomType {
+  room
+  corridor
 }
 
 model Coordinate {
   id Int @id @default(autoincrement())
   x Float
   y Float
-  room Room? @relation(fields: [roomId], references: [id], name: "coordinateOf")
+  room Room? @relation(fields: [roomId], references: [id], name: "roomCoordinateOf")
   roomId Int?
-  centroidOf Room? @relation(name: "centroidOf")
-  ap AccessPoint?
+}
+
+model User {
+  npm String @id
+  subjects Subject[]
+}
+
+model Subject {
+  id Int @id @default(autoincrement())
+  name String
+  schedules Schedule[]
+  students User[]
+}
+
+model Schedule {
+  id Int @id @default(autoincrement())
+  room Room @relation(fields: [roomId], references: [id])
+  roomId Int
+  Subject Subject @relation(fields: [subjectId], references: [id])
+  subjectId Int
+  startTime DateTime @db.Timestamptz()
+  endTime DateTime @db.Timestamptz()
 }
