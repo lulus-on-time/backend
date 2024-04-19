@@ -39,7 +39,7 @@ model Fingerprint {
 model FingerprintDetail {
   id Int @id @default(autoincrement())
   fingerprint Fingerprint @relation(fields: [fingerprintId], references: [id], onDelete: Cascade)
-  fingerprintId Int @unique
+  fingerprintId Int
   network Network @relation(fields: [bssid], references: [bssid], onDelete:  Cascade)
   bssid String
   rssi Float
