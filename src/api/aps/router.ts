@@ -134,6 +134,23 @@ router.get('/:id', async (req, res) => {
     return;
   }
 
+  try {
+      await prisma.floor.findFirstOrThrow({
+        where: {
+          id: id,
+        },
+      })
+  } catch (e) {
+    console.log(e);
+    res.status(404).send({
+      errors: {
+        status: 404,
+        message: 'Floor not found',
+      },
+    });
+    return;
+  }
+
   const prismaFindOptions = {
     where: {
       room: {
