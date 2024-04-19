@@ -14,7 +14,7 @@ model AccessPoint {
   id Int @id @default(autoincrement())
   networks Network[]
   description String
-  room Room @relation(fields: [roomId], references: [id])
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
   roomId Int
   xCoordinate Float
   yCoordinate Float
@@ -24,7 +24,7 @@ model Network {
   bssid String @id
   ssid String
   fingerprints FingerprintDetail[]
-  ap AccessPoint @relation(fields: [apId], references: [id])
+  ap AccessPoint @relation(fields: [apId], references: [id], onDelete: Cascade)
   apId Int
 }
 
@@ -32,15 +32,15 @@ model Fingerprint {
   id Int @id @default(autoincrement())
   createdAt DateTime @default(now())
   fingerprintDetails FingerprintDetail[]
-  location Room @relation(fields: [locationId], references: [id])
+  location Room @relation(fields: [locationId], references: [id], onDelete: Cascade)
   locationId Int
 }
 
 model FingerprintDetail {
   id Int @id @default(autoincrement())
-  fingerprint Fingerprint @relation(fields: [fingerprintId], references: [id])
+  fingerprint Fingerprint @relation(fields: [fingerprintId], references: [id], onDelete: Cascade)
   fingerprintId Int @unique
-  network Network @relation(fields: [bssid], references: [bssid] )
+  network Network @relation(fields: [bssid], references: [bssid], onDelete:  Cascade)
   bssid String
   rssi Float
 }
@@ -55,7 +55,7 @@ model Floor {
 model Room {
   id Int @id @default(autoincrement())
   name String
-  floor Floor @relation(fields: [floorId], references: [id])
+  floor Floor @relation(fields: [floorId], references: [id], onDelete: Cascade)
   floorId Int 
   coordinates Coordinate[] @relation(name: "roomCoordinateOf")
   poiX Float
@@ -75,7 +75,7 @@ model Coordinate {
   id Int @id @default(autoincrement())
   x Float
   y Float
-  room Room @relation(fields: [roomId], references: [id], name: "roomCoordinateOf")
+  room Room @relation(fields: [roomId], references: [id], name: "roomCoordinateOf", onDelete: Cascade)
   roomId Int
 }
 
@@ -93,9 +93,9 @@ model Subject {
 
 model Schedule {
   id Int @id @default(autoincrement())
-  room Room @relation(fields: [roomId], references: [id])
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
   roomId Int
-  Subject Subject @relation(fields: [subjectId], references: [id])
+  Subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   subjectId Int
   startTime DateTime @db.Timestamptz()
   endTime DateTime @db.Timestamptz()

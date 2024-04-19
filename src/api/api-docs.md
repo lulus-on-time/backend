@@ -124,6 +124,16 @@
   }
   ```
 
+  - 404 (Not Found) [No Floor with floorId found]
+  ```json
+  {
+    "error": {
+      "status": 404,
+      "message": "Floor Level Does Not Exist"
+    }
+  }
+  ```
+
 </details>
 
 <details>
@@ -262,8 +272,34 @@
 ##### Response Body
 - 200 (OK) [json of short information on all floors]
   ```json
-  
+  [
+    {
+        "id": 1,
+        "level": 0,
+        "name": "ABCD"
+    }
+  ]
   ```
+</details>
+
+<details>
+<summary><code>DELETE</code> <code><b>/floors/{floorId}</b></code> <code>(Delete All Access Point in a Floor)</code></summary>
+
+##### Path Parameters
+- floorId (required) [int] Id of floor to get all rooms from
+
+##### Response
+- 200 (OK) [No Response Body]
+- 404 (Not Found) [No floor with floorId]
+  ```json
+  {
+    "error": {
+      "status": 404,
+      "message": "Floor Level Does Not Exist"
+    }
+  }
+  ```
+
 </details>
 
 ### Access Point
@@ -416,7 +452,8 @@
                 "bssid": "AB:CD:EF:12:34:60",
                 "ssid": "Wifi"
               }
-            ]
+            ],
+              "description": "Sebelah Kiri Pintu"
           },
           "geometry": {
             "type": "Point",
@@ -436,7 +473,8 @@
               {
                 "bssid": "AB:CD:EF:12:34:62",
                 "ssid": "Wifi"
-              }
+              },
+              "description": "Sebelah Kanan Pintu"
             ]
           },
           "geometry": {

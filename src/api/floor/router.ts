@@ -101,6 +101,23 @@ router.get('/:id', async (req, res) => {
   const floorId = req.params.id;
 
   try {
+    await prisma.floor.findFirstOrThrow({
+      where: {
+        id: parseInt(floorId),
+      }
+    })
+  } catch (e) {
+    console.log(e);
+    res.status(404).send({
+      error: {
+        status: 404,
+        message: 'Floor Id Does Not Exist',
+      }
+    })
+    return;
+  }
+
+  try {
     const rooms = await prisma.room.findMany({
       where: {
         floorId: {
@@ -185,5 +202,26 @@ router.get('/:id', async (req, res) => {
     res.status(500).send(e);
   }
 });
+
+router.delete('/:id', async (req, res) => {
+  const floorId = req.params.id;
+
+  try {
+    await prisma.floor.delete({
+      where: {
+        id: parseInt(floorId),
+      },
+    });
+    res.sendStatus(200);
+  } catch (e) {
+    console.log(e);
+    res.status(404).send({
+      error: {
+        status: 404,
+        message: "Floor Id Does Not Exist"
+      }
+    })
+  }
+})
 
 export default router;
