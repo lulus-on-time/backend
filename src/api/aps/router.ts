@@ -26,12 +26,13 @@ router.post('/create', async (req, res) => {
     return;
   }
 
-
   for (const feature of validationValue.features) {
     try {
       const ap = await prisma.accessPoint.create({
         data: {
-          description: feature.properties.description ? feature.properties.description : '',
+          description: feature.properties.description
+            ? feature.properties.description
+            : '',
           xCoordinate: feature.geometry.coordinates[0],
           yCoordinate: feature.geometry.coordinates[1],
           room: {
@@ -53,11 +54,17 @@ router.post('/create', async (req, res) => {
           },
         },
       });
-      console.log(ap)
+      console.log(ap);
     } catch (e) {
-
-      if (e instanceof PrismaClientKnownRequestError && e.code === 'P2002') {
-        res.status(400).send({status: 400, message: 'Attempting to create a network with BSSID that already exists'});
+      if (
+        e instanceof PrismaClientKnownRequestError &&
+        e.code === 'P2002'
+      ) {
+        res.status(400).send({
+          status: 400,
+          message:
+            'Attempting to create a network with BSSID that already exists',
+        });
         return;
       }
 
@@ -90,7 +97,9 @@ router.get('/', async (req, res) => {
     const apResponse: ApResponse[] = [];
 
     for (const floor of floors) {
-      const apTotal = floor.rooms.map((room) => room.accessPoints).flat().length;
+      const apTotal = floor.rooms
+        .map((room) => room.accessPoints)
+        .flat().length;
       for (const room of floor.rooms) {
         for (const ap of room.accessPoints) {
           apResponse.push({
@@ -125,24 +134,27 @@ router.get('/:id', async (req, res) => {
     return;
   }
 
+  const prismaFindOptions = {
+    where: {
+      room: {
+        floorId: id,
+      },
+    },
+    include: {
+      room: {
+        include: {
+          floor: true,
+        },
+      },
+      networks: true,
+    },
+  };
+
   if (type == 'geojson') {
     try {
-      const aps = await prisma.accessPoint.findMany({
-        where: {
-          room: {
-            floorId: id
-          }
-        },
-        include: {
-          room: {
-            include: {
-              floor: true
-            }
-          },
-          networks: true,
-        }
-      })
-  
+      const aps =
+        await prisma.accessPoint.findMany(prismaFindOptions);
+
       const response = {
         floor: {
           id: aps[0].room.floor.id,
@@ -159,20 +171,20 @@ router.get('/:id', async (req, res) => {
                 bssids: ap.networks.map((network) => {
                   return {
                     bssid: network.bssid,
-                    ssid: network.ssid
-                  }
+                    ssid: network.ssid,
+                  };
                 }),
-                description: ap.description
+                description: ap.description,
               },
               geometry: {
                 type: 'Point',
-                coordinates: [ap.xCoordinate, ap.yCoordinate]
-              }
-            }
-          })
-        }
-      }
-  
+                coordinates: [ap.xCoordinate, ap.yCoordinate],
+              },
+            };
+          }),
+        },
+      };
+
       res.send(response);
       return;
     } catch (e) {
@@ -181,7 +193,64 @@ router.get('/:id', async (req, res) => {
       return;
     }
   }
-  
-})
+
+  if (!type || type == 'table') {
+    try {
+      const networks = await prisma.network.findMany({
+        where: {
+          ap: {
+            room: {
+              floorId: id,
+            },
+          },
+        },
+        include: {
+          ap: {
+            include: {
+              room: {
+                include: {
+                  floor: true,
+                },
+              },
+              networks: true,
+            },
+          },
+        },
+      });
+
+      const response = {
+        floorName: networks[0].ap.room.floor.name,
+        bssids: networks.map((network, index) => {
+          return {
+            key: index + 1,
+            apInfo: {
+              id: network.ap.id,
+              locationName: network.ap.room.name,
+              description: network.ap.description,
+              bssidTotal: network.ap.networks.length,
+            },
+            ssid: network.ssid,
+            bssid: network.bssid,
+          };
+        }),
+      };
+
+      res.send(response);
+      return;
+    } catch (e) {
+      console.error(e);
+      res.status(500).send('An unknown error occurred');
+      return;
+    }
+  }
+
+  res.status(400).send({
+    errors: {
+      status: 400,
+      message: 'Invalid type. Available types: table, geojson',
+    },
+  });
+  return;
+});
 
 export default router;

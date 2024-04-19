@@ -125,6 +125,7 @@
   ```
 
   - 404 (Not Found) [No Floor with floorId found]
+
   ```json
   {
     "error": {
@@ -267,28 +268,32 @@
 <summary><code>GET</code> <code><b>/floors/short</b></code> <code>(Get short information on all floors)</code></summary>
 
 ##### Parameters
+
 - No Parameters
 
 ##### Response Body
+
 - 200 (OK) [json of short information on all floors]
   ```json
   [
     {
-        "id": 1,
-        "level": 0,
-        "name": "ABCD"
+      "id": 1,
+      "level": 0,
+      "name": "ABCD"
     }
   ]
   ```
-</details>
+  </details>
 
 <details>
 <summary><code>DELETE</code> <code><b>/floors/{floorId}</b></code> <code>(Delete All Access Point in a Floor)</code></summary>
 
 ##### Path Parameters
+
 - floorId (required) [int] Id of floor to get all rooms from
 
 ##### Response
+
 - 200 (OK) [No Response Body]
 - 404 (Not Found) [No floor with floorId]
   ```json
@@ -422,68 +427,169 @@
 <details>
 <summary><code>GET</code> <code><b>/aps/{floorId}</b></code> <code>(Get all access points in a floor)</code></summary>
 
-##### Parameters
+##### Path Parameters
 
 - floorId (required) [int] Id of floor to get all access points from
 
-### Response
+##### Query Parameters
 
-- 200 (OK)
-  ```json
-  {
-    "floor": {
-      "id": 1,
-      "name": "ABCD"
-    },
-    "geojson": {
-      "type": "FeatureCollection",
-      "features": [
-        {
-          "type": "Feature",
-          "properties": {
-            "spaceId": 2,
-            "spaceName": "DEFG",
-            "bssids": [
+- type (optional) (defaults to table)
+
+  - table
+    - 200 (OK)
+      ```json
+      {
+          "floorName": "ABCD",
+          "bssids": [
               {
-                "bssid": "AB:CD:EF:12:34:5F",
-                "ssid": "Wifi"
+                  "key": 1,
+                  "apInfo": {
+                      "id": 3,
+                      "locationName": "Room ABC",
+                      "description": "Sebelah Kanan Pintu",
+                      "bssidTotal": 2
+                  },
+                  "ssid": "Wifi",
+                  "bssid": "AB:CD:EF:12:34:5F"
               },
               {
-                "bssid": "AB:CD:EF:12:34:60",
-                "ssid": "Wifi"
+                  "key": 2,
+                  "apInfo": {
+                      "id": 3,
+                      "locationName": "Room ABC",
+                      "description": "Sebelah Kanan Pintu",
+                      "bssidTotal": 2
+                  },
+                  "ssid": "Wifi",
+                  "bssid": "AB:CD:EF:12:34:60"
+              },
+              {
+                  "key": 3,
+                  "apInfo": {
+                      "id": 4,
+                      "locationName": "Room ABC",
+                      "description": "Sebelah Kiri Pintu",
+                      "bssidTotal": 2
+                  },
+                  "ssid": "Wifi",
+                  "bssid": "AB:CD:EF:12:34:61"
+              },
+              {
+                  "key": 4,
+                  "apInfo": {
+                      "id": 4,
+                      "locationName": "Room ABC",
+                      "description": "Sebelah Kiri Pintu",
+                      "bssidTotal": 2
+                  },
+                  "ssid": "Wifi",
+                  "bssid": "AB:CD:EF:12:34:62"
+              },
+              {
+                  "key": 5,
+                  "apInfo": {
+                      "id": 6,
+                      "locationName": "Room ABC",
+                      "description": "",
+                      "bssidTotal": 2
+                  },
+                  "ssid": "Wifi",
+                  "bssid": "AB:CD:EF:12:34:70"
+              },
+              {
+                  "key": 6,
+                  "apInfo": {
+                      "id": 6,
+                      "locationName": "Room ABC",
+                      "description": "",
+                      "bssidTotal": 2
+                  },
+                  "ssid": "Wifi",
+                  "bssid": "AB:CD:EF:12:34:71"
+              },
+              {
+                  "key": 7,
+                  "apInfo": {
+                      "id": 7,
+                      "locationName": "Room ABC",
+                      "description": "Sebelah Kiri Pintu",
+                      "bssidTotal": 2
+                  },
+                  "ssid": "Wifi",
+                  "bssid": "AB:CD:EF:12:34:72"
+              },
+              {
+                  "key": 8,
+                  "apInfo": {
+                      "id": 7,
+                      "locationName": "Room ABC",
+                      "description": "Sebelah Kiri Pintu",
+                      "bssidTotal": 2
+                  },
+                  "ssid": "Wifi",
+                  "bssid": "AB:CD:EF:12:34:73"
               }
-            ],
-              "description": "Sebelah Kiri Pintu"
+          ]
+      }
+      ```
+  - geojson
+    - 200 (OK)
+
+      ```json
+      {
+      "floor": {
+        "id": 1,
+        "name": "ABCD"
+      },
+      "geojson": {
+        "type": "FeatureCollection",
+        "features": [
+          {
+            "type": "Feature",
+            "properties": {
+              "spaceId": 2,
+              "spaceName": "DEFG",
+              "bssids": [
+                {
+                  "bssid": "AB:CD:EF:12:34:5F",
+                  "ssid": "Wifi"
+                },
+                {
+                  "bssid": "AB:CD:EF:12:34:60",
+                  "ssid": "Wifi"
+                }
+              ],
+                "description": "Sebelah Kiri Pintu"
+            },
+            "geometry": {
+              "type": "Point",
+              "coordinates": [288.056992, 766.988323]
+            }
           },
-          "geometry": {
-            "type": "Point",
-            "coordinates": [288.056992, 766.988323]
+          {
+            "type": "Feature",
+            "properties": {
+              "spaceId": 3,
+              "spaceName": "Corridor XYZ",
+              "bssids": [
+                {
+                  "bssid": "AB:CD:EF:12:34:61",
+                  "ssid": "Wifi"
+                },
+                {
+                  "bssid": "AB:CD:EF:12:34:62",
+                  "ssid": "Wifi"
+                },
+                "description": "Sebelah Kanan Pintu"
+              ]
+            },
+            "geometry": {
+              "type": "Point",
+              "coordinates": [400.056992, 750.988323]
+            }
           }
-        },
-        {
-          "type": "Feature",
-          "properties": {
-            "spaceId": 3,
-            "spaceName": "Corridor XYZ",
-            "bssids": [
-              {
-                "bssid": "AB:CD:EF:12:34:61",
-                "ssid": "Wifi"
-              },
-              {
-                "bssid": "AB:CD:EF:12:34:62",
-                "ssid": "Wifi"
-              },
-              "description": "Sebelah Kanan Pintu"
-            ]
-          },
-          "geometry": {
-            "type": "Point",
-            "coordinates": [400.056992, 750.988323]
-          }
-        }
-      ]
-    }
-  }
-  ```
-    </details>
+        ]
+      }
+      }
+      ```
+  </details>
