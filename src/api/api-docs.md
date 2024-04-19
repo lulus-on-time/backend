@@ -3,9 +3,9 @@
 ### Rooms
 
 <details>
-<summary><code>GET</code> <code><b>/floors</b></code> <code>(Get Rooms per floor)</code></summary>
+<summary><code>GET</code> <code><b>/floors/{floorId}</b></code> <code>(Get Rooms per floor)</code></summary>
 
-##### Parameters
+##### Path Parameters
 
 - floorId (required) [int] Id of floor to get all rooms from
 
@@ -251,6 +251,19 @@
 
   <code>Unknown Error Ocurred</code>
 
+</details>
+
+<details>
+<summary><code>GET</code> <code><b>/floors/short</b></code> <code>(Get short information on all floors)</code></summary>
+
+##### Parameters
+- No Parameters
+
+##### Response Body
+- 200 (OK) [json of short information on all floors]
+  ```json
+  
+  ```
 </details>
 
 ### Access Point
