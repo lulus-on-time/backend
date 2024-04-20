@@ -69,7 +69,7 @@ router.post('/create', async (req, res) => {
           floor: { connect: { id: newFloor.id } },
         },
       });
-      console.log(room)
+      console.log(room);
     } catch (e) {
       console.log(e);
       res.status(500).send('An unknown error occurred');
@@ -79,8 +79,43 @@ router.post('/create', async (req, res) => {
   res.sendStatus(200);
 });
 
-router.get('/', async (req, res) => {
-  const floorId = req.query.floorId as string;
+router.get('/short', async (req, res) => {
+  try {
+    const floorIds = await prisma.floor.findMany({
+      select: {
+        id: true,
+        level: true,
+        name: true,
+      },
+    });
+    res.send(floorIds);
+  } catch (e) {
+    console.log(e);
+    res.status(500).send(e);
+  }
+
+  return;
+});
+
+router.get('/:id', async (req, res) => {
+  const floorId = req.params.id;
+
+  try {
+    await prisma.floor.findFirstOrThrow({
+      where: {
+        id: parseInt(floorId),
+      }
+    })
+  } catch (e) {
+    console.log(e);
+    res.status(404).send({
+      error: {
+        status: 404,
+        message: 'Floor Id Does Not Exist',
+      }
+    })
+    return;
+  }
 
   try {
     const rooms = await prisma.room.findMany({
@@ -168,22 +203,25 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/short', async (req, res) => {
+router.delete('/:id', async (req, res) => {
+  const floorId = req.params.id;
+
   try {
-    const floorIds = await prisma.floor.findMany({
-      select: {
-        id: true,
-        level: true,
-        name: true,
+    await prisma.floor.delete({
+      where: {
+        id: parseInt(floorId),
       },
     });
-    res.send(floorIds);
+    res.sendStatus(200);
   } catch (e) {
     console.log(e);
-    res.status(500).send(e);
+    res.status(404).send({
+      error: {
+        status: 404,
+        message: "Floor Id Does Not Exist"
+      }
+    })
   }
-
-  return;
-});
+})
 
 export default router;

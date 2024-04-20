@@ -3,9 +3,9 @@
 ### Rooms
 
 <details>
-<summary><code>GET</code> <code><b>/floors</b></code> <code>(Get Rooms per floor)</code></summary>
+<summary><code>GET</code> <code><b>/floors/{floorId}</b></code> <code>(Get Rooms per floor)</code></summary>
 
-##### Parameters
+##### Path Parameters
 
 - floorId (required) [int] Id of floor to get all rooms from
 
@@ -120,6 +120,17 @@
           }
         }
       ]
+    }
+  }
+  ```
+
+  - 404 (Not Found) [No Floor with floorId found]
+
+  ```json
+  {
+    "error": {
+      "status": 404,
+      "message": "Floor Level Does Not Exist"
     }
   }
   ```
@@ -253,6 +264,49 @@
 
 </details>
 
+<details>
+<summary><code>GET</code> <code><b>/floors/short</b></code> <code>(Get short information on all floors)</code></summary>
+
+##### Parameters
+
+- No Parameters
+
+##### Response Body
+
+- 200 (OK) [json of short information on all floors]
+  ```json
+  [
+    {
+      "id": 1,
+      "level": 0,
+      "name": "ABCD"
+    }
+  ]
+  ```
+  </details>
+
+<details>
+<summary><code>DELETE</code> <code><b>/floors/{floorId}</b></code> <code>(Delete All Access Point in a Floor)</code></summary>
+
+##### Path Parameters
+
+- floorId (required) [int] Id of floor to get all rooms from
+
+##### Response
+
+- 200 (OK) [No Response Body]
+- 404 (Not Found) [No floor with floorId]
+  ```json
+  {
+    "error": {
+      "status": 404,
+      "message": "Floor Level Does Not Exist"
+    }
+  }
+  ```
+
+</details>
+
 ### Access Point
 
 <details><summary><code>POST</code> <code><b>/aps/create</b></code> <code>(Create Access Point per floor)</code></summary>
@@ -373,15 +427,120 @@
 <details>
 <summary><code>GET</code> <code><b>/aps/{floorId}</b></code> <code>(Get all access points in a floor)</code></summary>
 
-##### Parameters
+##### Path Parameters
 
 - floorId (required) [int] Id of floor to get all access points from
 
-### Response
+##### Query Parameters
 
-- 200 (OK)
-  ```json
-  {
+- type (optional) (defaults to table)
+  - geojson (get the geojson of all access points in a floor for map visualisation)
+  - table (get access point and network information for all access points in a floor)
+
+##### Response
+- table
+    - 200 (OK)
+
+      ```json
+      {
+          "floorName": "ABCD",
+          "bssids": [
+              {
+                  "key": 1,
+                  "apInfo": {
+                      "id": 3,
+                      "locationName": "Room ABC",
+                      "description": "Sebelah Kanan Pintu",
+                      "bssidTotal": 2
+                  },
+                  "ssid": "Wifi",
+                  "bssid": "AB:CD:EF:12:34:5F"
+              },
+              {
+                  "key": 2,
+                  "apInfo": {
+                      "id": 3,
+                      "locationName": "Room ABC",
+                      "description": "Sebelah Kanan Pintu",
+                      "bssidTotal": 2
+                  },
+                  "ssid": "Wifi",
+                  "bssid": "AB:CD:EF:12:34:60"
+              },
+              {
+                  "key": 3,
+                  "apInfo": {
+                      "id": 4,
+                      "locationName": "Room ABC",
+                      "description": "Sebelah Kiri Pintu",
+                      "bssidTotal": 2
+                  },
+                  "ssid": "Wifi",
+                  "bssid": "AB:CD:EF:12:34:61"
+              },
+              {
+                  "key": 4,
+                  "apInfo": {
+                      "id": 4,
+                      "locationName": "Room ABC",
+                      "description": "Sebelah Kiri Pintu",
+                      "bssidTotal": 2
+                  },
+                  "ssid": "Wifi",
+                  "bssid": "AB:CD:EF:12:34:62"
+              },
+              {
+                  "key": 5,
+                  "apInfo": {
+                      "id": 6,
+                      "locationName": "Room ABC",
+                      "description": "",
+                      "bssidTotal": 2
+                  },
+                  "ssid": "Wifi",
+                  "bssid": "AB:CD:EF:12:34:70"
+              },
+              {
+                  "key": 6,
+                  "apInfo": {
+                      "id": 6,
+                      "locationName": "Room ABC",
+                      "description": "",
+                      "bssidTotal": 2
+                  },
+                  "ssid": "Wifi",
+                  "bssid": "AB:CD:EF:12:34:71"
+              },
+              {
+                  "key": 7,
+                  "apInfo": {
+                      "id": 7,
+                      "locationName": "Room ABC",
+                      "description": "Sebelah Kiri Pintu",
+                      "bssidTotal": 2
+                  },
+                  "ssid": "Wifi",
+                  "bssid": "AB:CD:EF:12:34:72"
+              },
+              {
+                  "key": 8,
+                  "apInfo": {
+                      "id": 7,
+                      "locationName": "Room ABC",
+                      "description": "Sebelah Kiri Pintu",
+                      "bssidTotal": 2
+                  },
+                  "ssid": "Wifi",
+                  "bssid": "AB:CD:EF:12:34:73"
+              }
+          ]
+      }
+      ```
+- geojson
+  - 200 (OK)
+
+    ```json
+    {
     "floor": {
       "id": 1,
       "name": "ABCD"
@@ -403,7 +562,8 @@
                 "bssid": "AB:CD:EF:12:34:60",
                 "ssid": "Wifi"
               }
-            ]
+            ],
+              "description": "Sebelah Kiri Pintu"
           },
           "geometry": {
             "type": "Point",
@@ -423,7 +583,8 @@
               {
                 "bssid": "AB:CD:EF:12:34:62",
                 "ssid": "Wifi"
-              }
+              },
+              "description": "Sebelah Kanan Pintu"
             ]
           },
           "geometry": {
@@ -433,6 +594,7 @@
         }
       ]
     }
-  }
-  ```
-    </details>
+    }
+    ```
+
+  </details>
