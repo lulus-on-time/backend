@@ -10,6 +10,7 @@ type FloorRequest = {
       category: string,
       name: string;
       poi: number[];
+      id: number | undefined;
     };
     geometry: {
       type: string;

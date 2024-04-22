@@ -14,7 +14,8 @@ const validation: Joi.ObjectSchema<FloorRequest> = Joi.object({
         properties: Joi.object({
           name: Joi.string().required(),
           poi: Joi.array().items(Joi.number()).required(),
-          category: Joi.string().valid('room', 'corridor').required()
+          category: Joi.string().valid('room', 'corridor').required(),
+          id: Joi.number().optional()
         }).required(),
         geometry: Joi.object({
           type: Joi.string().valid('Polygon').required(),

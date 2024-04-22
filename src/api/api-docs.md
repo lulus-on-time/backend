@@ -307,6 +307,122 @@
 
 </details>
 
+<details>
+<summary><code>POST</code> <code><b>/floors/{floorId}/edit</b></code> <code>(Overrides rooms in a floor)</code></summary>
+
+##### Parameters
+- floorId (required) [int] Id of floor to get all rooms from
+
+##### Request Body
+The new geojson of the floor
+- Features with id will be updated (everything but coordinates and linked access points will be updated)
+- Features that exists in database but not in the new geojson will be deleted
+- Features with no id, will be created
+
+  ```json
+  {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "category": "room",
+          "name": "Room ABC",
+          "poi": [475.73701167459706, 402.2121372031662],
+          "id": 1
+        },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [302.159367, 375.773586],
+              [302.159367, 575.700438],
+              [502.264908, 575.700438],
+              [502.264908, 375.773586],
+              [302.159367, 375.773586]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "category": "corridor",
+          "name": "Corridor XYZABC",
+          "poi": [154.9981713066682, 48.92084432717678],
+          "id": 3
+        },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [302.145119, 300.807233],
+              [302.145119, 225.834664],
+              [101.03905, 226.834298],
+              [101.03905, 75.889525],
+              [202.092348, 76.889159],
+              [200.091293, 125.871238],
+              [301.144591, 125.871238],
+              [301.144591, 75.889525],
+              [402.197889, 75.889525],
+              [401.197361, 50.898668],
+              [201.091821, 51.898302],
+              [201.091821, -0.082679],
+              [-4.016359, -2.081948],
+              [0.98628, 301.806868],
+              [302.145119, 300.807233]
+            ]
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "category": "room",
+          "name": "New Auditorium",
+          "poi": [438.78126605322643, 151.65857519788918]
+        },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [1.079156, 300.831738],
+              [1.079156, 576.730794],
+              [302.237995, 576.730794],
+              [302.237995, 300.831738],
+              [1.079156, 300.831738]
+            ]
+          ]
+        }
+      }
+    ]
+  }
+  ```
+
+##### Response
+-  200 (OK)
+- 404 (Not Found)
+  ```json
+  {
+    "errors": {
+        "status": 404,
+        "message": "Floor Does Not Exist"
+    }
+  }
+  ```
+  - 400 (Bad Request)
+  ```json
+  {
+    "errors": {
+        "status": 400,
+        "message": "Invalid format for floorId"
+    }
+  }
+  ```
+
+
+</details>
+
 ### Access Point
 
 <details><summary><code>POST</code> <code><b>/aps/create</b></code> <code>(Create Access Point per floor)</code></summary>
