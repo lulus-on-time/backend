@@ -135,11 +135,11 @@ router.get('/:id', async (req, res) => {
   }
 
   try {
-      await prisma.floor.findFirstOrThrow({
-        where: {
-          id: id,
-        },
-      })
+    await prisma.floor.findFirstOrThrow({
+      where: {
+        id: id,
+      },
+    });
   } catch (e) {
     console.log(e);
     res.status(404).send({
@@ -234,6 +234,11 @@ router.get('/:id', async (req, res) => {
           },
         },
       });
+
+      if (networks.length == 0) {
+        res.send([]);
+        return;
+      }
 
       const response = {
         floorName: networks[0].ap.room.floor.name,
