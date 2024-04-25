@@ -260,6 +260,20 @@ router.post('/:id/edit', async (req, res) => {
       },
     });
 
+    const floorRequest = validationValue.floor;
+
+    if (floorRequest.level != floor.level || floorRequest.name != floor.name) {
+      await prisma.floor.update({
+        where: {
+          id: parseInt(id)
+        },
+        data: {
+          name: floorRequest.name,
+          level: floorRequest.level
+        }
+      })
+    }
+
     const features = validationValue.features;
     const roomsWithId = features
       .filter((feature) => feature.properties.id != undefined)
@@ -303,6 +317,15 @@ router.post('/:id/edit', async (req, res) => {
           },
         });
       } else {
+        const roomInDb = floor.rooms.find(room1 => room1.id == room.properties.id)
+
+        if (roomInDb == undefined) continue;
+
+        if (roomInDb.name == room.properties.name && roomInDb.poiX == room.properties.poi[0] 
+          && roomInDb.poiY == room.properties.poi[1] && roomInDb.roomType == (room.properties.category == 'room' ? RoomType.room : RoomType.corridor)) {
+          continue;
+          }
+
         await prisma.room.update({
           data: {
             name: room.properties.name,

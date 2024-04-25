@@ -311,16 +311,24 @@
 <summary><code>POST</code> <code><b>/floors/{floorId}/edit</b></code> <code>(Overrides rooms in a floor)</code></summary>
 
 ##### Parameters
+
 - floorId (required) [int] Id of floor to get all rooms from
 
 ##### Request Body
+
 The new geojson of the floor
+
 - Features with id will be updated (everything but coordinates and linked access points will be updated)
 - Features that exists in database but not in the new geojson will be deleted
 - Features with no id, will be created
+- floor attribute will update the floor info of the current floor
 
   ```json
   {
+    "floor": {
+      "level": 0,
+      "name": "ABCD"
+    },
     "type": "FeatureCollection",
     "features": [
       {
@@ -328,7 +336,7 @@ The new geojson of the floor
         "properties": {
           "category": "room",
           "name": "Room ABC",
-          "poi": [475.73701167459706, 402.2121372031662],
+          "poi": [400, 400],
           "id": 1
         },
         "geometry": {
@@ -348,7 +356,7 @@ The new geojson of the floor
         "type": "Feature",
         "properties": {
           "category": "corridor",
-          "name": "Corridor XYZABC",
+          "name": "Corridor XYZ",
           "poi": [154.9981713066682, 48.92084432717678],
           "id": 3
         },
@@ -400,13 +408,14 @@ The new geojson of the floor
   ```
 
 ##### Response
--  200 (OK)
+
+- 200 (OK)
 - 404 (Not Found)
   ```json
   {
     "errors": {
-        "status": 404,
-        "message": "Floor Does Not Exist"
+      "status": 404,
+      "message": "Floor Does Not Exist"
     }
   }
   ```
@@ -414,12 +423,11 @@ The new geojson of the floor
   ```json
   {
     "errors": {
-        "status": 400,
-        "message": "Invalid format for floorId"
+      "status": 400,
+      "message": "Invalid format for floorId"
     }
   }
   ```
-
 
 </details>
 
@@ -554,105 +562,109 @@ The new geojson of the floor
   - table (get access point and network information for all access points in a floor)
 
 ##### Response
-- table
-    - 200 (OK)
 
-      ```json
-      {
-          "floorName": "ABCD",
-          "bssids": [
-              {
-                  "key": 1,
-                  "apInfo": {
-                      "id": 3,
-                      "locationName": "Room ABC",
-                      "description": "Sebelah Kanan Pintu",
-                      "bssidTotal": 2
-                  },
-                  "ssid": "Wifi",
-                  "bssid": "AB:CD:EF:12:34:5F"
-              },
-              {
-                  "key": 2,
-                  "apInfo": {
-                      "id": 3,
-                      "locationName": "Room ABC",
-                      "description": "Sebelah Kanan Pintu",
-                      "bssidTotal": 2
-                  },
-                  "ssid": "Wifi",
-                  "bssid": "AB:CD:EF:12:34:60"
-              },
-              {
-                  "key": 3,
-                  "apInfo": {
-                      "id": 4,
-                      "locationName": "Room ABC",
-                      "description": "Sebelah Kiri Pintu",
-                      "bssidTotal": 2
-                  },
-                  "ssid": "Wifi",
-                  "bssid": "AB:CD:EF:12:34:61"
-              },
-              {
-                  "key": 4,
-                  "apInfo": {
-                      "id": 4,
-                      "locationName": "Room ABC",
-                      "description": "Sebelah Kiri Pintu",
-                      "bssidTotal": 2
-                  },
-                  "ssid": "Wifi",
-                  "bssid": "AB:CD:EF:12:34:62"
-              },
-              {
-                  "key": 5,
-                  "apInfo": {
-                      "id": 6,
-                      "locationName": "Room ABC",
-                      "description": "",
-                      "bssidTotal": 2
-                  },
-                  "ssid": "Wifi",
-                  "bssid": "AB:CD:EF:12:34:70"
-              },
-              {
-                  "key": 6,
-                  "apInfo": {
-                      "id": 6,
-                      "locationName": "Room ABC",
-                      "description": "",
-                      "bssidTotal": 2
-                  },
-                  "ssid": "Wifi",
-                  "bssid": "AB:CD:EF:12:34:71"
-              },
-              {
-                  "key": 7,
-                  "apInfo": {
-                      "id": 7,
-                      "locationName": "Room ABC",
-                      "description": "Sebelah Kiri Pintu",
-                      "bssidTotal": 2
-                  },
-                  "ssid": "Wifi",
-                  "bssid": "AB:CD:EF:12:34:72"
-              },
-              {
-                  "key": 8,
-                  "apInfo": {
-                      "id": 7,
-                      "locationName": "Room ABC",
-                      "description": "Sebelah Kiri Pintu",
-                      "bssidTotal": 2
-                  },
-                  "ssid": "Wifi",
-                  "bssid": "AB:CD:EF:12:34:73"
-              }
-          ]
-      }
-      ```
+- table
+
+  - 200 (OK)
+
+    ```json
+    {
+      "floorName": "ABCD",
+      "bssids": [
+        {
+          "key": 1,
+          "apInfo": {
+            "id": 3,
+            "locationName": "Room ABC",
+            "description": "Sebelah Kanan Pintu",
+            "bssidTotal": 2
+          },
+          "ssid": "Wifi",
+          "bssid": "AB:CD:EF:12:34:5F"
+        },
+        {
+          "key": 2,
+          "apInfo": {
+            "id": 3,
+            "locationName": "Room ABC",
+            "description": "Sebelah Kanan Pintu",
+            "bssidTotal": 2
+          },
+          "ssid": "Wifi",
+          "bssid": "AB:CD:EF:12:34:60"
+        },
+        {
+          "key": 3,
+          "apInfo": {
+            "id": 4,
+            "locationName": "Room ABC",
+            "description": "Sebelah Kiri Pintu",
+            "bssidTotal": 2
+          },
+          "ssid": "Wifi",
+          "bssid": "AB:CD:EF:12:34:61"
+        },
+        {
+          "key": 4,
+          "apInfo": {
+            "id": 4,
+            "locationName": "Room ABC",
+            "description": "Sebelah Kiri Pintu",
+            "bssidTotal": 2
+          },
+          "ssid": "Wifi",
+          "bssid": "AB:CD:EF:12:34:62"
+        },
+        {
+          "key": 5,
+          "apInfo": {
+            "id": 6,
+            "locationName": "Room ABC",
+            "description": "",
+            "bssidTotal": 2
+          },
+          "ssid": "Wifi",
+          "bssid": "AB:CD:EF:12:34:70"
+        },
+        {
+          "key": 6,
+          "apInfo": {
+            "id": 6,
+            "locationName": "Room ABC",
+            "description": "",
+            "bssidTotal": 2
+          },
+          "ssid": "Wifi",
+          "bssid": "AB:CD:EF:12:34:71"
+        },
+        {
+          "key": 7,
+          "apInfo": {
+            "id": 7,
+            "locationName": "Room ABC",
+            "description": "Sebelah Kiri Pintu",
+            "bssidTotal": 2
+          },
+          "ssid": "Wifi",
+          "bssid": "AB:CD:EF:12:34:72"
+        },
+        {
+          "key": 8,
+          "apInfo": {
+            "id": 7,
+            "locationName": "Room ABC",
+            "description": "Sebelah Kiri Pintu",
+            "bssidTotal": 2
+          },
+          "ssid": "Wifi",
+          "bssid": "AB:CD:EF:12:34:73"
+        }
+      ]
+    }
+    ```
+
 - geojson
+
   - 200 (OK)
 
     ```json
