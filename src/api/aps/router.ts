@@ -486,7 +486,12 @@ router.post('/:id/edit', async (req, res) => {
     res.sendStatus(200);
   } catch (e) {
     console.log(e);
-    res.status(500).send('An unknown error occurred');
+    res.status(404).send({
+      errors: {
+        status: 404,
+        message: 'Floor not found',
+      },
+    });
     return;
   }
 });
