@@ -104,16 +104,16 @@ router.get('/:id', async (req, res) => {
     await prisma.floor.findFirstOrThrow({
       where: {
         id: parseInt(floorId),
-      }
-    })
+      },
+    });
   } catch (e) {
     console.log(e);
     res.status(404).send({
       error: {
         status: 404,
         message: 'Floor Id Does Not Exist',
-      }
-    })
+      },
+    });
     return;
   }
 
@@ -218,10 +218,139 @@ router.delete('/:id', async (req, res) => {
     res.status(404).send({
       error: {
         status: 404,
-        message: "Floor Id Does Not Exist"
-      }
-    })
+        message: 'Floor Id Does Not Exist',
+      },
+    });
   }
-})
+});
+
+router.post('/:id/edit', async (req, res) => {
+  const { error: validationError, value: validationValue } =
+    validation.validate(req.body);
+
+  if (validationError) {
+    res.status(400).send({
+      errors: { status: 400, message: validationError.message },
+    });
+    return;
+  }
+
+  const id = req.params.id;
+
+  try {
+    if (isNaN(parseInt(id))) {
+      res.status(400).send({
+        errors: {
+          status: 400,
+          message: 'Invalid format for floorId',
+        },
+      });
+      return;
+    }
+    const floor = await prisma.floor.findFirstOrThrow({
+      where: {
+        id: parseInt(id),
+      },
+      include: {
+        rooms: {
+          include: {
+            coordinates: true,
+          },
+        },
+      },
+    });
+
+    const floorRequest = validationValue.floor;
+
+    if (floorRequest.level != floor.level || floorRequest.name != floor.name) {
+      await prisma.floor.update({
+        where: {
+          id: parseInt(id)
+        },
+        data: {
+          name: floorRequest.name,
+          level: floorRequest.level
+        }
+      })
+    }
+
+    const features = validationValue.features;
+    const roomsWithId = features
+      .filter((feature) => feature.properties.id != undefined)
+      .map((feature) => feature.properties.id);
+
+    await prisma.room.deleteMany({
+      where: {
+        id: {
+          in: floor.rooms
+            .filter((room) => !roomsWithId.includes(room.id))
+            .map((room) => room.id),
+        },
+      },
+    });
+
+    for (const room of features) {
+      if (room.properties.id == undefined) {
+        await prisma.room.create({
+          data: {
+            name: room.properties.name,
+            poiX: room.properties.poi[0],
+            poiY: room.properties.poi[1],
+            roomType:
+              room.properties.category == 'room'
+                ? RoomType.room
+                : RoomType.corridor,
+            coordinates: {
+              createMany: {
+                data: room.geometry.coordinates[0].map(
+                  (coordinate) => {
+                    return { x: coordinate[0], y: coordinate[1] };
+                  },
+                ),
+              },
+            },
+            floor: {
+              connect: {
+                id: floor.id,
+              },
+            },
+          },
+        });
+      } else {
+        const roomInDb = floor.rooms.find(room1 => room1.id == room.properties.id)
+
+        if (roomInDb == undefined) continue;
+
+        if (roomInDb.name == room.properties.name && roomInDb.poiX == room.properties.poi[0] 
+          && roomInDb.poiY == room.properties.poi[1] && roomInDb.roomType == (room.properties.category == 'room' ? RoomType.room : RoomType.corridor)) {
+          continue;
+          }
+
+        await prisma.room.update({
+          data: {
+            name: room.properties.name,
+            poiX: room.properties.poi[0],
+            poiY: room.properties.poi[1],
+            roomType:
+              room.properties.category == 'room'
+                ? RoomType.room
+                : RoomType.corridor,
+          },
+          where: {
+            id: room.properties.id,
+          },
+        });
+      }
+    }
+
+    res.sendStatus(200);
+  } catch (e) {
+    console.error(e);
+    res.status(404).send({
+      errors: { status: 404, message: 'Floor Does Not Exist' },
+    });
+    return;
+  }
+});
 
 export default router;
