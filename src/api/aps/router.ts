@@ -275,4 +275,200 @@ router.get('/:id', async (req, res) => {
   return;
 });
 
+router.post('/:id/edit', async (req, res) => {
+  const { error: validationError, value: validationValue } =
+    validation.validate(req.body);
+
+  if (validationError) {
+    res.status(400).send({
+      errors: { status: 400, message: validationError.message },
+    });
+    return;
+  }
+
+  const id = req.params.id;
+
+  try {
+    if (isNaN(parseInt(id))) {
+      res.status(400).send({
+        errors: {
+          status: 400,
+          message: 'Invalid format for floorId',
+        },
+      });
+      return;
+    }
+    const floor = await prisma.floor.findFirstOrThrow({
+      where: {
+        id: parseInt(id),
+      },
+      include: {
+        rooms: {
+          include: {
+            accessPoints: {
+              include: {
+                networks: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const apsWithId = validationValue.features
+      .filter((feature) => feature.properties.id != undefined)
+      .map((feature) => feature.properties.id);
+
+    await prisma.accessPoint.deleteMany({
+      where: {
+        id: {
+          in: floor.rooms
+            .flatMap((room) => room.accessPoints)
+            .map((ap) => ap.id)
+            .filter((id) => !apsWithId.includes(id)),
+        },
+      },
+    });
+
+    // create or update
+    for (const feature of validationValue.features) {
+      if (feature.properties.id === undefined) {
+        // create
+        await prisma.accessPoint.create({
+          data: {
+            description: feature.properties.description,
+            xCoordinate: feature.geometry.coordinates[0],
+            yCoordinate: feature.geometry.coordinates[1],
+            room: {
+              connect: {
+                id: feature.properties.spaceId,
+              },
+            },
+            networks: {
+              createMany: {
+                data: feature.properties.bssids.map(
+                  (networkDetail: {
+                    bssid: string;
+                    ssid: string;
+                  }) => {
+                    return {
+                      bssid: networkDetail.bssid,
+                      ssid: networkDetail.ssid,
+                    };
+                  },
+                ),
+              },
+            },
+          },
+        });
+      } else {
+        // check if different
+        const apInDb = floor.rooms
+          .find((room) =>
+            room.accessPoints
+              .map((ap) => ap.id)
+              .includes(feature.properties.id as number),
+          )
+          ?.accessPoints.find(
+            (ap) => ap.id === feature.properties.id,
+          );
+        if (apInDb === undefined) return;
+        if (
+          apInDb.description == feature.properties.description &&
+          apInDb.roomId == feature.properties.spaceId &&
+          apInDb.xCoordinate == feature.geometry.coordinates[0] &&
+          apInDb.yCoordinate == feature.geometry.coordinates[1] &&
+          apInDb.networks.length ==
+            feature.properties.bssids.length &&
+          apInDb.networks.every((network) =>
+            feature.properties.bssids.some(
+              (networkDetail: { bssid: string; ssid: string }) =>
+                network.bssid == networkDetail.bssid &&
+                network.ssid == networkDetail.ssid,
+            ),
+          )
+        ) {
+          // no changes
+          continue;
+        }
+
+        // find bssid that needs to be updated
+        const createBssids = feature.properties.bssids
+          .filter(
+            (networkDetail) =>
+              !apInDb.networks.some(
+                (network) => network.bssid == networkDetail.bssid,
+              ),
+          )
+          .map((networkDetail: { bssid: string; ssid: string }) => {
+            return {
+              bssid: networkDetail.bssid,
+              ssid: networkDetail.ssid,
+            };
+          });
+
+        const updateBssids = feature.properties.bssids
+          .filter((networkDetail) =>
+            apInDb.networks.some(
+              (network) => network.bssid == networkDetail.bssid,
+            ),
+          )
+          .map((networkDetail: { bssid: string; ssid: string }) => {
+            return {
+              bssid: networkDetail.bssid,
+              ssid: networkDetail.ssid,
+            };
+          });
+
+        // update ap
+        await prisma.accessPoint.update({
+          where: {
+            id: feature.properties.id as number,
+          },
+          data: {
+            description: feature.properties.description,
+            xCoordinate: feature.geometry.coordinates[0],
+            yCoordinate: feature.geometry.coordinates[1],
+            room: {
+              connect: {
+                id: feature.properties.spaceId,
+              },
+            },
+            networks: {
+              deleteMany: {
+                bssid: {
+                  notIn: feature.properties.bssids.map(
+                    (networkDetail) => networkDetail.bssid,
+                  ),
+                },
+              },
+              createMany: {
+                data: createBssids,
+              },
+            },
+          },
+        });
+
+        // update networks AKA bssids
+        for (const bssid of updateBssids) {
+          await prisma.network.update({
+            where: {
+              bssid: bssid.bssid,
+            },
+            data: {
+              ssid: bssid.ssid,
+            },
+          });
+        }
+      }
+    }
+
+    res.sendStatus(200);
+  } catch (e) {
+    console.log(e);
+    res.status(500).send('An unknown error occurred');
+    return;
+  }
+});
+
 export default router;
