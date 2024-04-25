@@ -172,6 +172,26 @@ router.get('/:id', async (req, res) => {
       const aps =
         await prisma.accessPoint.findMany(prismaFindOptions);
 
+      if (aps.length == 0) {
+        const floor = await prisma.floor.findFirstOrThrow({
+          where: {
+            id: id,
+          },
+        });
+
+        res.send({
+          floor: {
+            id: floor.id,
+            name: floor.name,
+          },
+          geojson: {
+            type: 'FeatureCollection',
+            features: [],
+          },
+        });
+        return;
+      }
+
       const response = {
         floor: {
           id: aps[0].room.floor.id,
