@@ -2,6 +2,7 @@ import express from 'express';
 import validation from './validation';
 import prisma from '../../db/prisma-client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { AccessPoint, Floor, Network, Room } from '@prisma/client';
 
 type ApResponse = {
   key: number;
@@ -134,8 +135,9 @@ router.get('/:id', async (req, res) => {
     return;
   }
 
+  let floor: Floor;
   try {
-    await prisma.floor.findFirstOrThrow({
+    floor = await prisma.floor.findFirstOrThrow({
       where: {
         id: id,
       },
@@ -168,131 +170,142 @@ router.get('/:id', async (req, res) => {
   };
 
   if (type == 'geojson') {
+    let aps: (AccessPoint & { room: Room & { floor: Floor } } & {
+      networks: Network[];
+    })[] = [];
     try {
-      const aps =
-        await prisma.accessPoint.findMany(prismaFindOptions);
-
-      if (aps.length == 0) {
-        const floor = await prisma.floor.findFirstOrThrow({
-          where: {
-            id: id,
+      aps = aps.concat(
+        await prisma.accessPoint.findMany(prismaFindOptions),
+      );
+    } catch (e) {
+      console.error(e);
+      res
+        .status(500)
+        .send({
+          errors: {
+            status: 500,
+            message: 'Error retrieving access points',
           },
         });
+      return;
+    }
 
-        res.send({
-          floor: {
-            id: floor.id,
-            name: floor.name,
-          },
-          geojson: {
-            type: 'FeatureCollection',
-            features: [],
-          },
-        });
-        return;
-      }
+    const response = {
+      floor: {
+        id: floor.id,
+        name: floor.name,
+      },
+      geojson: {
+        type: 'FeatureCollection',
+        features: [] as {
+          type: string;
+          properties: {
+            spaceId: number;
+            spaceName: string;
+            bssids: {
+              bssid: string;
+              ssid: string;
+            }[];
+            description: string;
+            id: number;
+          };
+          geometry: {
+            type: string;
+            coordinates: number[];
+          };
+        }[],
+      },
+    };
 
-      const response = {
-        floor: {
-          id: aps[0].room.floor.id,
-          name: aps[0].room.floor.name,
+    for (const ap of aps) {
+      const feature = {
+        type: 'Feature',
+        properties: {
+          spaceId: ap.room.id,
+          spaceName: ap.room.name,
+          bssids: [] as { bssid: string; ssid: string }[],
+          description: ap.description,
+          id: ap.id,
         },
-        geojson: {
-          type: 'FeatureCollection',
-          features: aps.map((ap) => {
-            return {
-              type: 'Feature',
-              properties: {
-                spaceId: ap.room.id,
-                spaceName: ap.room.name,
-                bssids: ap.networks.map((network) => {
-                  return {
-                    bssid: network.bssid,
-                    ssid: network.ssid,
-                  };
-                }),
-                description: ap.description,
-              },
-              geometry: {
-                type: 'Point',
-                coordinates: [ap.xCoordinate, ap.yCoordinate],
-              },
-            };
-          }),
+        geometry: {
+          type: 'Point',
+          coordinates: [ap.xCoordinate, ap.yCoordinate],
         },
       };
 
-      res.send(response);
-      return;
-    } catch (e) {
-      console.log(e);
-      res.status(500).send('An unknown error occurred');
-      return;
+      for (const network of ap.networks) {
+        feature.properties.bssids.push({
+          bssid: network.bssid,
+          ssid: network.ssid,
+        });
+      }
+
+      response.geojson.features.push(feature);
     }
+    res.send(response);
+    return;
   }
 
   if (!type || type == 'table') {
+    let aps: (AccessPoint & { room: Room & { floor: Floor } } & {
+      networks: Network[];
+    })[] = [];
+
     try {
-      const networks = await prisma.network.findMany({
-        where: {
-          ap: {
-            room: {
-              floorId: id,
-            },
-          },
-        },
-        include: {
-          ap: {
-            include: {
-              room: {
-                include: {
-                  floor: true,
-                },
-              },
-              networks: true,
-            },
-          },
-        },
-      });
-
-      if (networks.length == 0) {
-        res.send([]);
-        return;
-      }
-
-      const response = {
-        floorName: networks[0].ap.room.floor.name,
-        bssids: networks.map((network, index) => {
-          return {
-            key: index + 1,
-            apInfo: {
-              id: network.ap.id,
-              locationName: network.ap.room.name,
-              description: network.ap.description,
-              bssidTotal: network.ap.networks.length,
-            },
-            ssid: network.ssid,
-            bssid: network.bssid,
-          };
-        }),
-      };
-
-      res.send(response);
-      return;
+      aps = aps.concat(
+        await prisma.accessPoint.findMany(prismaFindOptions),
+      );
     } catch (e) {
       console.error(e);
-      res.status(500).send('An unknown error occurred');
+      res
+        .status(500)
+        .send({
+          errors: {
+            status: 500,
+            message: 'Error retrieving access points',
+          },
+        });
       return;
     }
-  }
 
-  res.status(400).send({
-    errors: {
-      status: 400,
-      message: 'Invalid type. Available types: table, geojson',
-    },
-  });
-  return;
+    const bssids: {
+      key: number;
+      apInfo: {
+        id: number;
+        locationName: string;
+        description?: string;
+        bssidTotal: number;
+      };
+      ssid: string;
+      bssid: string;
+    }[] = [];
+
+    let key = 1;
+    for (const ap of aps) {
+      for (const network of ap.networks) {
+        bssids.push({
+          key: key,
+          apInfo: {
+            id: ap.id,
+            locationName: ap.room.name,
+            description: ap.description,
+            bssidTotal: ap.networks.length,
+          },
+          ssid: network.ssid,
+          bssid: network.bssid,
+        });
+        key++;
+      }
+    }
+
+    const response = {
+      floorName: floor.name,
+      bssids: bssids,
+    }
+
+    res.send(response);
+    return;
+  }
 });
 
 router.post('/:id/edit', async (req, res) => {
