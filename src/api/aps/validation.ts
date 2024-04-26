@@ -17,7 +17,8 @@ const validation: Joi.ObjectSchema<AccessPointRequest> = Joi.object({
               }),
             )
             .required(),
-          description: Joi.string().optional(),
+          description: Joi.string().allow('').optional(),
+          id: Joi.number().optional(),
         }).required(),
         geometry: Joi.object({
           type: Joi.string().valid('Point').required(),
