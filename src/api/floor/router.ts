@@ -224,7 +224,7 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-router.post('/:id/edit', async (req, res) => {
+router.post(':id/edits', async (req, res) => {
   const { error: validationError, value: validationValue } =
     validation.validate(req.body);
 
@@ -235,21 +235,17 @@ router.post('/:id/edit', async (req, res) => {
     return;
   }
 
-  const id = req.params.id;
+  const idInRequest = req.params.id;
 
   try {
-    if (isNaN(parseInt(id))) {
-      res.status(400).send({
-        errors: {
-          status: 400,
-          message: 'Invalid format for floorId',
-        },
-      });
-      return;
+    const id = parseInt(idInRequest);
+
+    if (isNaN(id)) {
+      throw TypeError('id should be integer.');
     }
     const floor = await prisma.floor.findFirstOrThrow({
       where: {
-        id: parseInt(id),
+        id: id,
       },
       include: {
         rooms: {
@@ -262,16 +258,28 @@ router.post('/:id/edit', async (req, res) => {
 
     const floorRequest = validationValue.floor;
 
-    if (floorRequest.level != floor.level || floorRequest.name != floor.name) {
-      await prisma.floor.update({
-        where: {
-          id: parseInt(id)
-        },
-        data: {
-          name: floorRequest.name,
-          level: floorRequest.level
-        }
-      })
+    if (
+      floorRequest.level != floor.level ||
+      floorRequest.name != floor.name
+    ) {
+      try {
+        await prisma.floor.update({
+          where: {
+            id: id,
+          },
+          data: {
+            name: floorRequest.name,
+            level: floorRequest.level,
+          },
+        });
+      } catch (e) {
+        console.log(e);
+        res.status(500).send({
+          status: 500,
+          message: 'Error updating floor information',
+        });
+        return;
+      }
     }
 
     const features = validationValue.features;
@@ -279,76 +287,117 @@ router.post('/:id/edit', async (req, res) => {
       .filter((feature) => feature.properties.id != undefined)
       .map((feature) => feature.properties.id);
 
-    await prisma.room.deleteMany({
-      where: {
-        id: {
-          in: floor.rooms
-            .filter((room) => !roomsWithId.includes(room.id))
-            .map((room) => room.id),
-        },
-      },
-    });
+    if (roomsWithId.length != 0) {
+      try {
+        await prisma.room.deleteMany({
+          where: {
+            id: {
+              notIn: roomsWithId as number[],
+            },
+          },
+        });
+      } catch (e) {
+        console.log(e);
+        res
+          .status(500)
+          .send({ status: 500, message: 'Error deleting rooms' });
+        return;
+      }
+    }
 
     for (const room of features) {
       if (room.properties.id == undefined) {
-        await prisma.room.create({
-          data: {
-            name: room.properties.name,
-            poiX: room.properties.poi[0],
-            poiY: room.properties.poi[1],
-            roomType:
-              room.properties.category == 'room'
-                ? RoomType.room
-                : RoomType.corridor,
-            coordinates: {
-              createMany: {
-                data: room.geometry.coordinates[0].map(
-                  (coordinate) => {
-                    return { x: coordinate[0], y: coordinate[1] };
-                  },
-                ),
+        try {
+          await prisma.room.create({
+            data: {
+              name: room.properties.name,
+              poiX: room.properties.poi[0],
+              poiY: room.properties.poi[1],
+              roomType:
+                room.properties.category == 'room'
+                  ? RoomType.room
+                  : RoomType.corridor,
+              coordinates: {
+                createMany: {
+                  data: room.geometry.coordinates[0].map(
+                    (coordinate) => {
+                      return { x: coordinate[0], y: coordinate[1] };
+                    },
+                  ),
+                },
+              },
+              floor: {
+                connect: {
+                  id: floor.id,
+                },
               },
             },
-            floor: {
-              connect: {
-                id: floor.id,
-              },
-            },
-          },
-        });
+          });
+        } catch (e) {
+          res.status(500).send({
+            status: 500,
+            message: `Error creating room with name ${room.properties.name}`,
+          });
+          console.log(e);
+          return;
+        }
       } else {
-        const roomInDb = floor.rooms.find(room1 => room1.id == room.properties.id)
+        const roomInDb = floor.rooms.find(
+          (room1) => room1.id == room.properties.id,
+        );
 
         if (roomInDb == undefined) continue;
 
-        if (roomInDb.name == room.properties.name && roomInDb.poiX == room.properties.poi[0] 
-          && roomInDb.poiY == room.properties.poi[1] && roomInDb.roomType == (room.properties.category == 'room' ? RoomType.room : RoomType.corridor)) {
+        if (
+          roomInDb.name == room.properties.name &&
+          roomInDb.poiX == room.properties.poi[0] &&
+          roomInDb.poiY == room.properties.poi[1] &&
+          roomInDb.roomType ==
+            (room.properties.category == 'room'
+              ? RoomType.room
+              : RoomType.corridor)
+        ) {
           continue;
-          }
+        }
 
-        await prisma.room.update({
-          data: {
-            name: room.properties.name,
-            poiX: room.properties.poi[0],
-            poiY: room.properties.poi[1],
-            roomType:
-              room.properties.category == 'room'
-                ? RoomType.room
-                : RoomType.corridor,
-          },
-          where: {
-            id: room.properties.id,
-          },
-        });
+        try {
+          await prisma.room.update({
+            data: {
+              name: room.properties.name,
+              poiX: room.properties.poi[0],
+              poiY: room.properties.poi[1],
+              roomType:
+                room.properties.category == 'room'
+                  ? RoomType.room
+                  : RoomType.corridor,
+            },
+            where: {
+              id: room.properties.id,
+            },
+          });
+        } catch (e) {
+          res.status(500).send({
+            status: 500,
+            message: `Error creating room with name ${room.properties.name} and id ${room.properties.id}`,
+          });
+          console.log(e);
+          return;
+        }
       }
     }
 
     res.sendStatus(200);
   } catch (e) {
-    console.error(e);
-    res.status(404).send({
-      errors: { status: 404, message: 'Floor Does Not Exist' },
-    });
+    if (e instanceof TypeError) {
+      res
+        .status(400)
+        .send({ status: 400, message: 'Invalid format for floorId' });
+    } else {
+      console.log(e);
+      res
+        .status(500)
+        .send({ status: 500, message: 'Error getting floor' });
+    }
     return;
   }
 });
