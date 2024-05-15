@@ -290,10 +290,10 @@ router.post('/:id/edit', async (req, res) => {
         });
       } catch (e) {
         console.log(e);
-        res.status(500).send({
+        res.status(400).send({
           error: {
-            status: 500,
-            message: 'Error updating floor information',
+            status: 400,
+            message: 'Floor level exists',
           },
         });
         return;
@@ -305,23 +305,21 @@ router.post('/:id/edit', async (req, res) => {
       .filter((feature) => feature.properties.id != undefined)
       .map((feature) => feature.properties.id);
 
-    if (roomsWithId.length != 0) {
-      try {
-        await prisma.room.deleteMany({
-          where: {
-            id: {
-              notIn: roomsWithId as number[],
-            },
-            floorId: id,
+    try {
+      await prisma.room.deleteMany({
+        where: {
+          id: {
+            notIn: roomsWithId as number[],
           },
-        });
-      } catch (e) {
-        console.log(e);
-        res.status(500).send({
-          error: { status: 500, message: 'Error deleting rooms' },
-        });
-        return;
-      }
+          floorId: id,
+        },
+      });
+    } catch (e) {
+      console.log(e);
+      res.status(500).send({
+        error: { status: 500, message: 'Error deleting rooms' },
+      });
+      return;
     }
 
     for (const room of features) {
