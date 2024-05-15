@@ -2,15 +2,15 @@ FROM node:20.11.0
 
 WORKDIR /websocket
 
-ENV DATABASE_URL="postgresql://postgres:findmyself123@34.75.54.53/mydb?schema=findmyself"
+COPY package.json .
 
-COPY ../../package.json .
+COPY tsconfig.json .
 
-COPY ../../tsconfig.json .
+COPY prisma ./prisma
 
-COPY ../../prisma ./prisma
+COPY src/api ./src/api
 
-COPY ../../src/api ./src/api
+COPY src/db ./src/db
 
 RUN npm i
 
