@@ -398,7 +398,7 @@ router.post('/:id/edit', async (req, res) => {
           res.status(500).send({
             error: {
               status: 500,
-              message: `Error creating room with name ${room.properties.name} and id ${room.properties.id}`,
+              message: `Error updating room with name ${room.properties.name} and id ${room.properties.id}`,
             },
           });
           console.log(e);
@@ -419,8 +419,8 @@ router.post('/:id/edit', async (req, res) => {
       });
     } else {
       console.log(e);
-      res.status(500).send({
-        error: { status: 500, message: 'Error getting floor' },
+      res.status(400).send({
+        error: { status: 400, message: `Floor Doesn't Exist` },
       });
     }
     return;
