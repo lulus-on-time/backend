@@ -33,7 +33,9 @@ router.post('/create', async (req, res) => {
     validation.validate(req.body);
 
   if (validationError) {
-    res.status(400).send(validationError.message);
+    res.status(400).send({
+      error: { status: 400, message: validationError.message },
+    });
     return;
   }
 
@@ -72,15 +74,22 @@ router.post('/create', async (req, res) => {
         e.code === 'P2002'
       ) {
         res.status(400).send({
-          status: 400,
-          message:
-            'Attempting to create a network with BSSID that already exists',
+          error: {
+            status: 400,
+            message:
+              'Attempting to create a network with BSSID that already exists',
+          },
         });
         return;
       }
 
       console.log(e);
-      res.status(500).send('An unknown error occurred');
+      res.status(500).send({
+        error: {
+          status: 500,
+          message: 'An unknown error occurred',
+        },
+      });
       return;
     }
   }
@@ -131,7 +140,9 @@ router.get('/', async (req, res) => {
     res.send(apResponse);
   } catch (e) {
     console.log(e);
-    res.status(500).send('An unknown error occurred');
+    res.status(500).send({
+      error: { status: 500, message: 'An unknown error occurred' },
+    });
     return;
   }
 });
@@ -141,7 +152,9 @@ router.get('/:id', async (req, res) => {
   const type = req.query.type;
 
   if (id == undefined) {
-    res.status(400).send('Invalid ID');
+    res
+      .status(400)
+      .send({ error: { status: 400, message: 'Invalid floor id' } });
     return;
   }
 
@@ -155,7 +168,7 @@ router.get('/:id', async (req, res) => {
   } catch (e) {
     console.log(e);
     res.status(404).send({
-      errors: {
+      error: {
         status: 404,
         message: 'Floor not found',
       },
@@ -190,7 +203,7 @@ router.get('/:id', async (req, res) => {
     } catch (e) {
       console.error(e);
       res.status(500).send({
-        errors: {
+        error: {
           status: 500,
           message: 'Error retrieving access points',
         },
@@ -266,7 +279,7 @@ router.get('/:id', async (req, res) => {
     } catch (e) {
       console.error(e);
       res.status(500).send({
-        errors: {
+        error: {
           status: 500,
           message: 'Error retrieving access points',
         },
@@ -362,13 +375,19 @@ async function handleRequestInTransaction(
   } catch (e) {
     console.error(e);
     throw Error('Error retrieving floor');
-    return;
   }
 
   // delete
-  const networksInDb = floor.rooms.flatMap(room => room.accessPoints).flatMap(ap => ap.networks).map(network => network.bssid);
-  const networksInRequest = validationValue.features.flatMap(feature => feature.properties.bssids).map(network => network.bssid);
-  const networksToDelete = networksInDb.filter(network => !networksInRequest.includes(network));
+  const networksInDb = floor.rooms
+    .flatMap((room) => room.accessPoints)
+    .flatMap((ap) => ap.networks)
+    .map((network) => network.bssid);
+  const networksInRequest = validationValue.features
+    .flatMap((feature) => feature.properties.bssids)
+    .map((network) => network.bssid);
+  const networksToDelete = networksInDb.filter(
+    (network) => !networksInRequest.includes(network),
+  );
 
   if (networksToDelete.length > 0) {
     try {
@@ -519,7 +538,7 @@ router.post('/:id/edit', async (req, res) => {
     console.error(e);
     if (e instanceof Error) {
       res.status(500).send({
-        errors: {
+        error: {
           status: 500,
           message: e.message,
         },
@@ -528,7 +547,7 @@ router.post('/:id/edit', async (req, res) => {
     }
 
     res.status(500).send({
-      errors: {
+      error: {
         status: 500,
         message: 'An unknown error occurred',
       },
