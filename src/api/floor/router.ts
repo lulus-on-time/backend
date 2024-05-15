@@ -11,7 +11,9 @@ router.post('/create', async (req, res) => {
     validation.validate(req.body);
 
   if (validationError) {
-    res.status(400).send(validationError.message);
+    res.status(400).send({
+      error: { status: 400, message: validationError.message },
+    });
     return;
   }
 
@@ -36,7 +38,12 @@ router.post('/create', async (req, res) => {
         error: { status: 400, message: 'Floor level exists' },
       });
     } else {
-      res.status(500).send('An unknown error occurred');
+      res.status(500).send({
+        error: {
+          status: 500,
+          message: 'An unknown error occurred',
+        },
+      });
     }
   }
 
@@ -72,7 +79,12 @@ router.post('/create', async (req, res) => {
       console.log(room);
     } catch (e) {
       console.log(e);
-      res.status(500).send('An unknown error occurred');
+      res.status(500).send({
+        error: {
+          status: 500,
+          message: 'An unknown error occurred',
+        },
+      });
       return;
     }
   }
@@ -91,7 +103,9 @@ router.get('/short', async (req, res) => {
     res.send(floorIds);
   } catch (e) {
     console.log(e);
-    res.status(500).send(e);
+    res.status(500).send({
+      error: { status: 500, message: 'An unknown error occurred' },
+    });
   }
 
   return;
@@ -199,7 +213,9 @@ router.get('/:id', async (req, res) => {
     res.send({ geojson: response });
   } catch (e) {
     console.log(e);
-    res.status(500).send(e);
+    res.status(500).send({
+      error: { status: 500, message: 'An unknown error occurred' },
+    });
   }
 });
 
@@ -230,7 +246,7 @@ router.post('/:id/edit', async (req, res) => {
 
   if (validationError) {
     res.status(400).send({
-      errors: { status: 400, message: validationError.message },
+      error: { status: 400, message: validationError.message },
     });
     return;
   }
@@ -275,8 +291,10 @@ router.post('/:id/edit', async (req, res) => {
       } catch (e) {
         console.log(e);
         res.status(500).send({
-          status: 500,
-          message: 'Error updating floor information',
+          error: {
+            status: 500,
+            message: 'Error updating floor information',
+          },
         });
         return;
       }
@@ -299,9 +317,9 @@ router.post('/:id/edit', async (req, res) => {
         });
       } catch (e) {
         console.log(e);
-        res
-          .status(500)
-          .send({ status: 500, message: 'Error deleting rooms' });
+        res.status(500).send({
+          error: { status: 500, message: 'Error deleting rooms' },
+        });
         return;
       }
     }
@@ -336,8 +354,10 @@ router.post('/:id/edit', async (req, res) => {
           });
         } catch (e) {
           res.status(500).send({
-            status: 500,
-            message: `Error creating room with name ${room.properties.name}`,
+            error: {
+              status: 500,
+              message: `Error creating room with name ${room.properties.name}`,
+            },
           });
           console.log(e);
           return;
@@ -378,8 +398,10 @@ router.post('/:id/edit', async (req, res) => {
           });
         } catch (e) {
           res.status(500).send({
-            status: 500,
-            message: `Error creating room with name ${room.properties.name} and id ${room.properties.id}`,
+            error: {
+              status: 500,
+              message: `Error creating room with name ${room.properties.name} and id ${room.properties.id}`,
+            },
           });
           console.log(e);
           return;
@@ -391,14 +413,17 @@ router.post('/:id/edit', async (req, res) => {
     res.sendStatus(200);
   } catch (e) {
     if (e instanceof TypeError) {
-      res
-        .status(400)
-        .send({ status: 400, message: 'Invalid format for floorId' });
+      res.status(400).send({
+        error: {
+          status: 400,
+          message: 'Invalid format for floorId',
+        },
+      });
     } else {
       console.log(e);
-      res
-        .status(500)
-        .send({ status: 500, message: 'Error getting floor' });
+      res.status(500).send({
+        error: { status: 500, message: 'Error getting floor' },
+      });
     }
     return;
   }
