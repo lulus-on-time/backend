@@ -325,6 +325,10 @@ router.get('/:id', async (req, res) => {
     res.send(response);
     return;
   }
+
+  res
+    .send(400)
+    .send({ error: { status: 400, message: 'Invalid type' } });
 });
 
 async function handleRequestInTransaction(
@@ -545,14 +549,14 @@ router.post('/:id/edit', async (req, res) => {
       });
       return;
     }
-
-    res.status(500).send({
-      error: {
-        status: 500,
-        message: 'An unknown error occurred',
-      },
-    });
   }
+
+  res.status(500).send({
+    error: {
+      status: 500,
+      message: 'An unknown error occurred',
+    },
+  });
 });
 
 export default router;
