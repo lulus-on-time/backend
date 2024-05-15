@@ -1,7 +1,18 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import validation from './validation';
 import prisma from '../../db/prisma-client';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import {
+  DefaultArgs,
+  PrismaClientKnownRequestError,
+} from '@prisma/client/runtime/library';
+import {
+  AccessPoint,
+  Floor,
+  Network,
+  Prisma,
+  PrismaClient,
+  Room,
+} from '@prisma/client';
 
 type ApResponse = {
   key: number;
@@ -22,7 +33,9 @@ router.post('/create', async (req, res) => {
     validation.validate(req.body);
 
   if (validationError) {
-    res.status(400).send(validationError.message);
+    res.status(400).send({
+      error: { status: 400, message: validationError.message },
+    });
     return;
   }
 
@@ -61,15 +74,22 @@ router.post('/create', async (req, res) => {
         e.code === 'P2002'
       ) {
         res.status(400).send({
-          status: 400,
-          message:
-            'Attempting to create a network with BSSID that already exists',
+          error: {
+            status: 400,
+            message:
+              'Attempting to create a network with BSSID that already exists',
+          },
         });
         return;
       }
 
       console.log(e);
-      res.status(500).send('An unknown error occurred');
+      res.status(500).send({
+        error: {
+          status: 500,
+          message: 'An unknown error occurred',
+        },
+      });
       return;
     }
   }
@@ -120,7 +140,9 @@ router.get('/', async (req, res) => {
     res.send(apResponse);
   } catch (e) {
     console.log(e);
-    res.status(500).send('An unknown error occurred');
+    res.status(500).send({
+      error: { status: 500, message: 'An unknown error occurred' },
+    });
     return;
   }
 });
@@ -130,12 +152,15 @@ router.get('/:id', async (req, res) => {
   const type = req.query.type;
 
   if (id == undefined) {
-    res.status(400).send('Invalid ID');
+    res
+      .status(400)
+      .send({ error: { status: 400, message: 'Invalid floor id' } });
     return;
   }
 
+  let floor: Floor;
   try {
-    await prisma.floor.findFirstOrThrow({
+    floor = await prisma.floor.findFirstOrThrow({
       where: {
         id: id,
       },
@@ -143,7 +168,7 @@ router.get('/:id', async (req, res) => {
   } catch (e) {
     console.log(e);
     res.status(404).send({
-      errors: {
+      error: {
         status: 404,
         message: 'Floor not found',
       },
@@ -168,157 +193,174 @@ router.get('/:id', async (req, res) => {
   };
 
   if (type == 'geojson') {
+    let aps: (AccessPoint & { room: Room & { floor: Floor } } & {
+      networks: Network[];
+    })[] = [];
     try {
-      const aps =
-        await prisma.accessPoint.findMany(prismaFindOptions);
-
-      if (aps.length == 0) {
-        const floor = await prisma.floor.findFirstOrThrow({
-          where: {
-            id: id,
-          },
-        });
-
-        res.send({
-          floor: {
-            id: floor.id,
-            name: floor.name,
-          },
-          geojson: {
-            type: 'FeatureCollection',
-            features: [],
-          },
-        });
-        return;
-      }
-
-      const response = {
-        floor: {
-          id: aps[0].room.floor.id,
-          name: aps[0].room.floor.name,
+      aps = aps.concat(
+        await prisma.accessPoint.findMany(prismaFindOptions),
+      );
+    } catch (e) {
+      console.error(e);
+      res.status(500).send({
+        error: {
+          status: 500,
+          message: 'Error retrieving access points',
         },
-        geojson: {
-          type: 'FeatureCollection',
-          features: aps.map((ap) => {
-            return {
-              type: 'Feature',
-              properties: {
-                spaceId: ap.room.id,
-                spaceName: ap.room.name,
-                bssids: ap.networks.map((network) => {
-                  return {
-                    bssid: network.bssid,
-                    ssid: network.ssid,
-                  };
-                }),
-                description: ap.description,
-              },
-              geometry: {
-                type: 'Point',
-                coordinates: [ap.xCoordinate, ap.yCoordinate],
-              },
-            };
-          }),
+      });
+      return;
+    }
+
+    const response = {
+      floor: {
+        id: floor.id,
+        name: floor.name,
+      },
+      geojson: {
+        type: 'FeatureCollection',
+        features: [] as {
+          type: string;
+          properties: {
+            spaceId: number;
+            spaceName: string;
+            bssids: {
+              bssid: string;
+              ssid: string;
+            }[];
+            description: string;
+            id: number;
+          };
+          geometry: {
+            type: string;
+            coordinates: number[];
+          };
+        }[],
+      },
+    };
+
+    for (const ap of aps) {
+      const feature = {
+        type: 'Feature',
+        properties: {
+          spaceId: ap.room.id,
+          spaceName: ap.room.name,
+          bssids: [] as { bssid: string; ssid: string }[],
+          description: ap.description,
+          id: ap.id,
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: [ap.xCoordinate, ap.yCoordinate],
         },
       };
 
-      res.send(response);
-      return;
-    } catch (e) {
-      console.log(e);
-      res.status(500).send('An unknown error occurred');
-      return;
+      for (const network of ap.networks) {
+        feature.properties.bssids.push({
+          bssid: network.bssid,
+          ssid: network.ssid,
+        });
+      }
+
+      response.geojson.features.push(feature);
     }
+    res.send(response);
+    return;
   }
 
   if (!type || type == 'table') {
+    let aps: (AccessPoint & { room: Room & { floor: Floor } } & {
+      networks: Network[];
+    })[] = [];
+
     try {
-      const networks = await prisma.network.findMany({
-        where: {
-          ap: {
-            room: {
-              floorId: id,
-            },
-          },
-        },
-        include: {
-          ap: {
-            include: {
-              room: {
-                include: {
-                  floor: true,
-                },
-              },
-              networks: true,
-            },
-          },
-        },
-      });
-
-      if (networks.length == 0) {
-        res.send([]);
-        return;
-      }
-
-      const response = {
-        floorName: networks[0].ap.room.floor.name,
-        bssids: networks.map((network, index) => {
-          return {
-            key: index + 1,
-            apInfo: {
-              id: network.ap.id,
-              locationName: network.ap.room.name,
-              description: network.ap.description,
-              bssidTotal: network.ap.networks.length,
-            },
-            ssid: network.ssid,
-            bssid: network.bssid,
-          };
-        }),
-      };
-
-      res.send(response);
-      return;
+      aps = aps.concat(
+        await prisma.accessPoint.findMany(prismaFindOptions),
+      );
     } catch (e) {
       console.error(e);
-      res.status(500).send('An unknown error occurred');
+      res.status(500).send({
+        error: {
+          status: 500,
+          message: 'Error retrieving access points',
+        },
+      });
       return;
     }
+
+    const bssids: {
+      key: number;
+      apInfo: {
+        id: number;
+        locationName: string;
+        description?: string;
+        bssidTotal: number;
+      };
+      ssid: string;
+      bssid: string;
+    }[] = [];
+
+    let key = 1;
+    for (const ap of aps) {
+      for (const network of ap.networks) {
+        bssids.push({
+          key: key,
+          apInfo: {
+            id: ap.id,
+            locationName: ap.room.name,
+            description: ap.description,
+            bssidTotal: ap.networks.length,
+          },
+          ssid: network.ssid,
+          bssid: network.bssid,
+        });
+        key++;
+      }
+    }
+
+    const response = {
+      floorName: floor.name,
+      bssids: bssids,
+    };
+
+    res.send(response);
+    return;
   }
 
-  res.status(400).send({
-    errors: {
-      status: 400,
-      message: 'Invalid type. Available types: table, geojson',
-    },
-  });
-  return;
+  res
+    .send(400)
+    .send({ error: { status: 400, message: 'Invalid type' } });
 });
 
-router.post('/:id/edit', async (req, res) => {
+async function handleRequestInTransaction(
+  req: Request,
+  res: Response,
+  prisma: Omit<
+    PrismaClient<Prisma.PrismaClientOptions, never, DefaultArgs>,
+    | '$connect'
+    | '$disconnect'
+    | '$on'
+    | '$transaction'
+    | '$use'
+    | '$extends'
+  >,
+) {
   const { error: validationError, value: validationValue } =
     validation.validate(req.body);
 
   if (validationError) {
-    res.status(400).send({
-      errors: { status: 400, message: validationError.message },
-    });
-    return;
+    throw Error(validationError.message);
   }
 
   const id = req.params.id;
 
+  let floor: Floor & {
+    rooms: (Room & {
+      accessPoints: (AccessPoint & { networks: Network[] })[];
+    })[];
+  };
+
   try {
-    if (isNaN(parseInt(id))) {
-      res.status(400).send({
-        errors: {
-          status: 400,
-          message: 'Invalid format for floorId',
-        },
-      });
-      return;
-    }
-    const floor = await prisma.floor.findFirstOrThrow({
+    floor = await prisma.floor.findFirstOrThrow({
       where: {
         id: parseInt(id),
       },
@@ -334,29 +376,79 @@ router.post('/:id/edit', async (req, res) => {
         },
       },
     });
+  } catch (e) {
+    console.error(e);
+    throw Error('Error retrieving floor');
+  }
 
-    const apsWithId = validationValue.features
-      .filter((feature) => feature.properties.id != undefined)
-      .map((feature) => feature.properties.id);
+  // delete
+  const networksInDb = floor.rooms
+    .flatMap((room) => room.accessPoints)
+    .flatMap((ap) => ap.networks)
+    .map((network) => network.bssid);
+  const networksInRequest = validationValue.features
+    .flatMap((feature) => feature.properties.bssids)
+    .map((network) => network.bssid);
+  const networksToDelete = networksInDb.filter(
+    (network) => !networksInRequest.includes(network),
+  );
 
-    await prisma.accessPoint.deleteMany({
-      where: {
-        id: {
-          in: floor.rooms
-            .flatMap((room) => room.accessPoints)
-            .map((ap) => ap.id)
-            .filter((id) => !apsWithId.includes(id)),
+  if (networksToDelete.length > 0) {
+    try {
+      await prisma.network.deleteMany({
+        where: {
+          bssid: {
+            in: networksToDelete,
+          },
         },
-      },
-    });
+      });
+    } catch (e) {
+      console.error(e);
+      throw Error('Error deleting Networks');
+    }
+  }
 
-    // create or update
-    for (const feature of validationValue.features) {
-      if (feature.properties.id === undefined) {
-        // create
-        await prisma.accessPoint.create({
+  const apsInDb = floor.rooms.flatMap((room) => room.accessPoints);
+  const apsInRequest = validationValue.features;
+  const idsInRequest = apsInRequest
+    .filter((ap) => ap.properties.id != undefined)
+    .map((ap) => ap.properties.id as number);
+
+  const apsToDelete = apsInDb.filter(
+    (ap) => !idsInRequest.includes(ap.id),
+  );
+  const idsToDelete = apsToDelete.map((ap) => ap.id);
+
+  if (idsToDelete.length > 0) {
+    try {
+      await prisma.accessPoint.deleteMany({
+        where: {
+          id: {
+            in: idsToDelete,
+          },
+        },
+      });
+    } catch (e) {
+      console.error(e);
+      throw Error('Error deleting access points');
+    }
+  }
+
+  const setOfAps: Set<number> = new Set();
+  const setOfBssids: Set<string> = new Set();
+
+  for (const feature of apsInRequest) {
+    let accessPoint: AccessPoint;
+
+    if (feature.properties.id == undefined) {
+      // create
+      try {
+        accessPoint = await prisma.accessPoint.create({
           data: {
-            description: feature.properties.description,
+            description:
+              feature.properties.description == undefined
+                ? '-'
+                : feature.properties.description,
             xCoordinate: feature.geometry.coordinates[0],
             yCoordinate: feature.geometry.coordinates[1],
             room: {
@@ -364,89 +456,32 @@ router.post('/:id/edit', async (req, res) => {
                 id: feature.properties.spaceId,
               },
             },
-            networks: {
-              createMany: {
-                data: feature.properties.bssids.map(
-                  (networkDetail: {
-                    bssid: string;
-                    ssid: string;
-                  }) => {
-                    return {
-                      bssid: networkDetail.bssid,
-                      ssid: networkDetail.ssid,
-                    };
-                  },
-                ),
-              },
-            },
           },
         });
-      } else {
-        // check if different
-        const apInDb = floor.rooms
-          .find((room) =>
-            room.accessPoints
-              .map((ap) => ap.id)
-              .includes(feature.properties.id as number),
-          )
-          ?.accessPoints.find(
-            (ap) => ap.id === feature.properties.id,
-          );
-        if (apInDb === undefined) return;
-        if (
-          apInDb.description == feature.properties.description &&
-          apInDb.roomId == feature.properties.spaceId &&
-          apInDb.xCoordinate == feature.geometry.coordinates[0] &&
-          apInDb.yCoordinate == feature.geometry.coordinates[1] &&
-          apInDb.networks.length ==
-            feature.properties.bssids.length &&
-          apInDb.networks.every((network) =>
-            feature.properties.bssids.some(
-              (networkDetail: { bssid: string; ssid: string }) =>
-                network.bssid == networkDetail.bssid &&
-                network.ssid == networkDetail.ssid,
-            ),
-          )
-        ) {
-          // no changes
-          continue;
-        }
 
-        // find bssid that needs to be updated
-        const createBssids = feature.properties.bssids
-          .filter(
-            (networkDetail) =>
-              !apInDb.networks.some(
-                (network) => network.bssid == networkDetail.bssid,
-              ),
-          )
-          .map((networkDetail: { bssid: string; ssid: string }) => {
-            return {
-              bssid: networkDetail.bssid,
-              ssid: networkDetail.ssid,
-            };
-          });
+        setOfAps.add(accessPoint.id);
+      } catch (e) {
+        console.error(e);
+        throw Error('Error creating access points');
+      }
+    } else {
+      // update
+      if (setOfAps.has(feature.properties.id)) {
+        throw Error('Duplicate AP Id Found');
+      }
 
-        const updateBssids = feature.properties.bssids
-          .filter((networkDetail) =>
-            apInDb.networks.some(
-              (network) => network.bssid == networkDetail.bssid,
-            ),
-          )
-          .map((networkDetail: { bssid: string; ssid: string }) => {
-            return {
-              bssid: networkDetail.bssid,
-              ssid: networkDetail.ssid,
-            };
-          });
+      setOfAps.add(feature.properties.id);
 
-        // update ap
-        await prisma.accessPoint.update({
+      try {
+        accessPoint = await prisma.accessPoint.update({
           where: {
-            id: feature.properties.id as number,
+            id: feature.properties.id,
           },
           data: {
-            description: feature.properties.description,
+            description:
+              feature.properties.description == undefined
+                ? '-'
+                : feature.properties.description,
             xCoordinate: feature.geometry.coordinates[0],
             yCoordinate: feature.geometry.coordinates[1],
             room: {
@@ -454,46 +489,74 @@ router.post('/:id/edit', async (req, res) => {
                 id: feature.properties.spaceId,
               },
             },
-            networks: {
-              deleteMany: {
-                bssid: {
-                  notIn: feature.properties.bssids.map(
-                    (networkDetail) => networkDetail.bssid,
-                  ),
-                },
-              },
-              createMany: {
-                data: createBssids,
-              },
-            },
           },
         });
-
-        // update networks AKA bssids
-        for (const bssid of updateBssids) {
-          await prisma.network.update({
-            where: {
-              bssid: bssid.bssid,
-            },
-            data: {
-              ssid: bssid.ssid,
-            },
-          });
-        }
+      } catch (e) {
+        console.error(e);
+        throw Error('Error updating access points');
       }
     }
 
+    const networkInRequests = feature.properties.bssids;
+
+    for (const networkInRequest of networkInRequests) {
+      if (setOfBssids.has(networkInRequest.bssid)) {
+        throw Error('Duplicate BSSID Found');
+      }
+
+      setOfBssids.add(networkInRequest.bssid);
+
+      await prisma.network.upsert({
+        where: {
+          bssid: networkInRequest.bssid,
+        },
+        update: {
+          ssid: networkInRequest.ssid,
+          ap: {
+            connect: {
+              id: accessPoint.id,
+            },
+          },
+        },
+        create: {
+          bssid: networkInRequest.bssid,
+          ssid: networkInRequest.ssid,
+          ap: {
+            connect: {
+              id: accessPoint.id,
+            },
+          },
+        },
+      });
+    }
+  }
+}
+
+router.post('/:id/edit', async (req, res) => {
+  try {
+    await prisma.$transaction(async (prisma) => {
+      await handleRequestInTransaction(req, res, prisma);
+    });
     res.sendStatus(200);
   } catch (e) {
-    console.log(e);
-    res.status(404).send({
-      errors: {
-        status: 404,
-        message: 'Floor not found',
-      },
-    });
-    return;
+    console.error(e);
+    if (e instanceof Error) {
+      res.status(500).send({
+        error: {
+          status: 500,
+          message: e.message,
+        },
+      });
+      return;
+    }
   }
+
+  res.status(500).send({
+    error: {
+      status: 500,
+      message: 'An unknown error occurred',
+    },
+  });
 });
 
 export default router;

@@ -4,56 +4,95 @@ import prisma from '../../db/prisma-client';
 
 const router = express.Router();
 
-router.post('/create', async (req, res) => {
-  const request = req.body as SubjectRequestBody;
+// router.post('/create', async (req, res) => {
+//   const request = req.body as SubjectRequestBody;
 
-  try {
-    const subject = await prisma.subject.create({
-      data: {
-        name: request.name,
-        students: {
-          connectOrCreate: request.students.map((npm) => {
-            return {
-              create: {
-                npm: npm,
-              },
+//   try {
+//     const subject = await prisma.subject.create({
+//       data: {
+//         name: request.name,
+//         students: {
+//           connectOrCreate: request.students.map((npm) => {
+//             return {
+//               create: {
+//                 npm: npm,
+//               },
+//               where: {
+//                 npm: npm,
+//               },
+//             };
+//           }),
+//         },
+//         schedules: {
+//           createMany: {
+//             data: [...Array(1)].map((_, index) => {
+//               return {
+//                 roomId: request.schedules.roomId,
+//                 startTime: getStartOrEndDate(
+//                   request.schedules.day,
+//                   request.schedules.start,
+//                   index,
+//                 ),
+//                 endTime: getStartOrEndDate(
+//                   request.schedules.day,
+//                   request.schedules.end,
+//                   index,
+//                 ),
+//               };
+//             }),
+//           },
+//         },
+//       },
+//     });
+
+//     console.log(subject);
+//   } catch (e) {
+//     console.error(e);
+//     res.sendStatus(500);
+//     return;
+//   }
+
+//   res.sendStatus(200);
+// });
+
+router.post('/create', async (req, res) => {
+  const request = req.body as {data: {roomId: number, start: string, end: string, name: string, npm: string}[]}
+
+  for (const data of request.data) {
+    try {
+      const subject = await prisma.subject.create({
+        data: {
+          name: data.name,
+          students: {
+            connectOrCreate: {
               where: {
-                npm: npm,
+                npm: data.npm,
               },
-            };
-          }),
-        },
-        schedules: {
-          createMany: {
-            data: [...Array(1)].map((_, index) => {
-              return {
-                roomId: request.schedules.roomId,
-                startTime: getStartOrEndDate(
-                  request.schedules.day,
-                  request.schedules.start,
-                  index,
-                ),
-                endTime: getStartOrEndDate(
-                  request.schedules.day,
-                  request.schedules.end,
-                  index,
-                ),
-              };
-            }),
+              create: {
+                npm: data.npm,
+              },
+            },
+          },
+          schedules: {
+            create: {
+              roomId: data.roomId,
+              startTime: new Date(data.start),
+              endTime: new Date(data.end),
+            },
           },
         },
-      },
-    });
+      });
 
-    console.log(subject);
-  } catch (e) {
-    console.error(e);
-    res.sendStatus(500);
-    return;
+      console.log(subject);
+    } catch (e) {
+      console.error(e);
+      res.sendStatus(500);
+      return;
+    }
   }
 
   res.sendStatus(200);
-});
+})
 
 function getStartOrEndDate(
   date: string,
