@@ -3,7 +3,7 @@ import connectionEventListener from './positioning/wss-listener/connection';
 import dotenv from 'dotenv';
 
 dotenv.config();
-const wsPort = Number(process.env.PORT);
+const wsPort = Number(process.env.WSSPORT);
 
 const wss = new WebSocketServer({
   port: wsPort,
