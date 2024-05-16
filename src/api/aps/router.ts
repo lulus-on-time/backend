@@ -437,6 +437,27 @@ async function handleRequestInTransaction(
   const setOfAps: Set<number> = new Set();
   const setOfBssids: Set<string> = new Set();
 
+  try {
+    const networks = await prisma.network.findMany({
+      where: {
+        ap: {
+          room: {
+            floorId: {
+              not: parseInt(id),
+            },
+          },
+        },
+      },
+    });
+    const bssids = networks.map((network) => network.bssid);
+    for (const bssid of bssids) {
+      setOfBssids.add(bssid);
+    }
+  } catch (e) {
+    console.error(e);
+    throw Error('Error retrieving access points');
+  }
+
   for (const feature of apsInRequest) {
     let accessPoint: AccessPoint;
 
