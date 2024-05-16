@@ -1,8 +1,10 @@
 import WebSocket from 'ws';
 import prisma from '../../../db/prisma-client';
-import { io } from 'socket.io-client';
 import validation from '../validation';
 import { randomUUID } from 'crypto';
+import socketIoClient from '../socketio-client/client';
+import computeTrilateration from '../trilateration/computeTrilateration';
+import { threshold } from '../constants';
 
 const listener = async (
   ws: WebSocket, //request: Request
@@ -10,17 +12,51 @@ const listener = async (
   const uuid = randomUUID();
   console.log(`Client connected with id: ${uuid}`);
 
-  const client = io('http://127.0.0.1:5000', { forceNew: true });
+  const client = socketIoClient;
+
+  let trilaterationCoordinate: {
+    data: {
+      location: [number, number];
+      poi: string;
+      floorId: number;
+    };
+  } = {
+    data: {
+      location: [0, 0],
+      poi: 'null',
+      floorId: -2,
+    },
+  };
 
   client.on(
     `predict_${uuid}`,
-    (response: {
-      prediction: { label: string; probability: number }[];
-    }) => {
+    async (
+      response: { locationId: string; probability: number }[],
+    ) => {
+      if (response[0].probability < threshold) {
+        ws.send(JSON.stringify(trilaterationCoordinate));
+      }
       console.log(response);
-      ws.send(
-        JSON.stringify({ location: response.prediction[0].label }),
-      );
+
+      try {
+        const room = await prisma.room.findFirstOrThrow({
+          where: {
+            id: parseInt(response[0].locationId),
+          },
+        });
+        ws.send(
+          JSON.stringify({
+            data: {
+              location: [room.poiX, room.poiY],
+              poi: room.name,
+              floorId: room.floorId,
+            },
+          }),
+        );
+      } catch (e) {
+        console.error(e);
+        console.log('error getting room info');
+      }
     },
   );
 
@@ -65,12 +101,20 @@ const listener = async (
       fingerprint.rssi = Math.pow(10, fingerprint.rssi / 10);
     }
 
-    client.emit(
-      'predict',
+    client.emit('predict', {
+      clientId: uuid,
+      data: validationValue.data.fingerprints,
+    });
+
+    console.log(
       JSON.stringify({
         clientId: uuid,
         data: validationValue.data.fingerprints,
       }),
+    );
+
+    trilaterationCoordinate = await computeTrilateration(
+      validationValue.data.fingerprints,
     );
 
     if (!validationValue.npm) {
@@ -79,15 +123,14 @@ const listener = async (
     }
 
     try {
-      const now = new Date()
+      const now = new Date();
       const schedule = await prisma.schedule.findFirstOrThrow({
         where: {
-          
           startTime: {
-            lte: now
+            lte: now,
           },
           endTime: {
-            gte: now
+            gte: now,
           },
           Subject: {
             students: {
