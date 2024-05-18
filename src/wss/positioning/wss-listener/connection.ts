@@ -1,8 +1,10 @@
 import WebSocket from 'ws';
 import prisma from '../../../db/prisma-client';
-import { io } from 'socket.io-client';
 import validation from '../validation';
 import { randomUUID } from 'crypto';
+import socketIoClient from '../socketio-client/client';
+import computeTrilateration from '../trilateration/computeTrilateration';
+import { threshold } from '../constants';
 
 const listener = async (
   ws: WebSocket, //request: Request
@@ -10,17 +12,53 @@ const listener = async (
   const uuid = randomUUID();
   console.log(`Client connected with id: ${uuid}`);
 
-  const client = io('http://127.0.0.1:5000', { forceNew: true });
+  const client = socketIoClient;
+
+  let trilaterationCoordinate: Promise<{
+    data: {
+      location: [number, number];
+      poi: string;
+      floorId: number;
+    };
+  }>;
 
   client.on(
     `predict_${uuid}`,
-    (response: {
-      prediction: { label: string; probability: number }[];
-    }) => {
+    async (
+      response: { locationId: string; probability: number }[],
+    ) => {
       console.log(response);
-      ws.send(
-        JSON.stringify({ location: response.prediction[0].label }),
-      );
+      if (response[0].probability >= threshold) {
+        console.log('Use mls data');
+        try {
+          const room = await prisma.room.findFirstOrThrow({
+            where: {
+              id: parseInt(response[0].locationId),
+            },
+          });
+          ws.send(
+            JSON.stringify({
+              data: {
+                location: [room.poiX, room.poiY],
+                poi: room.name,
+                floorId: room.floorId,
+              },
+            }),
+          );
+          return;
+        } catch (e) {
+          console.error(e);
+          console.log('error getting room info');
+        }
+      }
+
+      try {
+        const data = await trilaterationCoordinate;
+        ws.send(JSON.stringify(data));
+      } catch (e) {
+        console.error(e);
+        return;
+      }
     },
   );
 
@@ -65,13 +103,18 @@ const listener = async (
       fingerprint.rssi = Math.pow(10, fingerprint.rssi / 10);
     }
 
-    client.emit(
-      'predict',
-      JSON.stringify({
-        clientId: uuid,
-        data: validationValue.data.fingerprints,
-      }),
+    trilaterationCoordinate = computeTrilateration(
+      validationValue.data.fingerprints,
     );
+    trilaterationCoordinate.catch((e) => console.error(e));
+
+    client.emit('predict', {
+      clientId: uuid,
+      data: validationValue.data.fingerprints,
+    });
+
+    console.log('Send Data to mls');
+    console.log('Is Client Connected: ', client.connected);
 
     if (!validationValue.npm) {
       console.log('Unauthenticated user');
@@ -79,15 +122,14 @@ const listener = async (
     }
 
     try {
-      const now = new Date()
+      const now = new Date();
       const schedule = await prisma.schedule.findFirstOrThrow({
         where: {
-          
           startTime: {
-            lte: now
+            lte: now,
           },
           endTime: {
-            gte: now
+            gte: now,
           },
           Subject: {
             students: {
