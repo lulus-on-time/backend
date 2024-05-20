@@ -10,9 +10,6 @@ import fiboSet from "../training/FibonacciSet";
 const listener = async (
   ws: WebSocket, //request: Request
 ) => {
-  for (const num of fiboSet) {
-    console.log(num);
-  }
   const uuid = randomUUID();
   console.log(`Client connected with id: ${uuid}`);
 
