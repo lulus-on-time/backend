@@ -9,4 +9,6 @@ const wss = new WebSocketServer({
   port: wsPort,
 });
 
+console.log('WebSocketServer is running on port: ', wsPort);
+
 wss.on('connection', connectionEventListener);

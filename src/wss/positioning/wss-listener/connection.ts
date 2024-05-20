@@ -5,6 +5,7 @@ import { randomUUID } from 'crypto';
 import socketIoClient from '../socketio-client/client';
 import computeTrilateration from '../trilateration/computeTrilateration';
 import { threshold } from '../constants';
+import fiboSet from "../training/FibonacciSet";
 
 const listener = async (
   ws: WebSocket, //request: Request
@@ -154,7 +155,7 @@ const listener = async (
         return;
       }
 
-      const fingerprints = await prisma.fingerprint.create({
+      await prisma.fingerprint.create({
         data: {
           createdAt: new Date(),
           location: {
@@ -170,7 +171,16 @@ const listener = async (
         },
       });
 
-      console.log(fingerprints);
+      const count = await prisma.fingerprint.count({
+        where: {
+          locationId: schedule.roomId,
+        }
+      })
+
+      if (fiboSet.has(count)) {
+        client.emit('train', {command: 'Train!'});
+      }
+
     } catch (e) {
       console.log(e);
       return;
