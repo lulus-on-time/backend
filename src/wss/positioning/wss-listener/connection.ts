@@ -2,10 +2,10 @@ import WebSocket from 'ws';
 import prisma from '../../../db/prisma-client';
 import validation from '../validation';
 import { randomUUID } from 'crypto';
-import socketIoClient from '../socketio-client/client';
 import computeTrilateration from '../trilateration/computeTrilateration';
 import { threshold } from '../constants';
 import fiboSet from '../training/FibonacciSet';
+import { io } from 'socket.io-client';
 
 const listener = async (
   ws: WebSocket, //request: Request
@@ -13,7 +13,18 @@ const listener = async (
   const uuid = randomUUID();
   console.log(`Client connected with id: ${uuid}`);
 
-  const client = socketIoClient;
+  const client = io(
+    process.env.MLURL !== undefined
+      ? process.env.MLURL
+      : 'http://34.101.70.143:5000',
+    {
+      forceNew: true,
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 1000,
+    },
+  );;
 
   let trilaterationCoordinate: Promise<{
     data: {
