@@ -86,9 +86,31 @@ const computeTrilateration = async (
 
   if (trilaterationAps.length != 3) {
     console.log('Trilateration failed');
-    return Promise.reject(
-      new Error('Trilateration failed because less than 3 APs found'),
+    if (sortedFp.length == 0) {
+      return Promise.reject(
+        new Error(
+          'Fingerprint does not consist of signal from a single access point registered in the system',
+        ),
+      );
+    }
+
+    const bssid = sortedFp[0].bssid;
+    const ap = apsInDb.filter((ap) =>
+      ap.networks.map((n) => n.bssid).includes(bssid),
     );
+
+    if (ap.length == 0) {
+      return Promise.reject(
+        new Error('Error finding access point location'),
+      );
+    }
+    return {
+      data: {
+        location: [0, 0],
+        poi: 'test',
+        floorId: ap[0].room.floorId,
+      },
+    };
   }
 
   const distances = trilaterationAps.map((ap) => {
