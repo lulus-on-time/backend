@@ -2,10 +2,10 @@ import WebSocket from 'ws';
 import prisma from '../../../db/prisma-client';
 import validation from '../validation';
 import { randomUUID } from 'crypto';
-import socketIoClient from '../socketio-client/client';
 import computeTrilateration from '../trilateration/computeTrilateration';
 import { threshold } from '../constants';
 import fiboSet from '../training/FibonacciSet';
+import { io } from 'socket.io-client';
 
 const listener = async (
   ws: WebSocket, //request: Request
@@ -13,7 +13,18 @@ const listener = async (
   const uuid = randomUUID();
   console.log(`Client connected with id: ${uuid}`);
 
-  const client = socketIoClient;
+  const client = io(
+    process.env.MLURL !== undefined
+      ? process.env.MLURL
+      : 'http://34.101.70.143:5000',
+    {
+      forceNew: true,
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 1000,
+    },
+  );;
 
   let trilaterationCoordinate: Promise<{
     data: {
@@ -30,13 +41,22 @@ const listener = async (
     ) => {
       console.log(response);
       if (response[0].probability >= threshold) {
-        console.log('Use mls data');
+        console.log('Use Machine Learning Data');
         try {
           const room = await prisma.room.findFirstOrThrow({
             where: {
               id: parseInt(response[0].locationId),
             },
           });
+          console.log(
+            JSON.stringify({
+              data: {
+                location: [room.poiX, room.poiY],
+                poi: room.name,
+                floorId: room.floorId,
+              },
+            }),
+          );
           ws.send(
             JSON.stringify({
               data: {
@@ -53,8 +73,10 @@ const listener = async (
         }
       }
 
+      console.log('Use Trilateration Data');
       try {
         const data = await trilaterationCoordinate;
+        console.log(JSON.stringify(data));
         ws.send(JSON.stringify(data));
       } catch (e) {
         console.error(e);
@@ -114,8 +136,11 @@ const listener = async (
       data: validationValue.data.fingerprints,
     });
 
-    console.log('Send Data to mls');
-    console.log('Is Client Connected: ', client.connected);
+    console.log('Send Data to Machine Learning Server');
+    console.log(
+      'Is Connected to Machine Learning Server: ',
+      client.connected,
+    );
 
     if (!validationValue.npm) {
       console.log('Unauthenticated user');
@@ -170,6 +195,7 @@ const listener = async (
           },
         },
       });
+      console.log('New Fingerprint Saved');
 
       const count = await prisma.fingerprint.count({
         where: {
@@ -179,6 +205,7 @@ const listener = async (
 
       if (fiboSet.has(count)) {
         client.emit('train', { command: 'Train!' });
+        console.log('ML Training Requested');
       }
     } catch (e) {
       console.log(e);
