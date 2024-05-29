@@ -27,7 +27,83 @@ app.use('/subjects', subjectRouter);
 app.get('/', async (req, res) => {
   doTesting(res);
   // getFingerprintsForTesting(res);
+  // analyzeTestRequest();
+  // analyzeTestResponse()
 });
+
+type TestRequest = {
+  fingerprintRequests: {
+    reason: string;
+    data: { fingerprints: { rssi: number; bssid: string }[] };
+    npm: string | undefined;
+  }[];
+  arrayOfLabels: number[];
+};
+
+type TestResponse = {
+  y_pred: {
+    location: { floorId: number; x: number; y: number };
+    roomId: number;
+  }[];
+  y_true: number[];
+}[];
+
+async function analyzeTestResponse() {
+  const testRequest: TestRequest = JSON.parse(
+    fs.readFileSync('testRequest.json', 'utf8'),
+  );
+
+  const testResponse: TestResponse = JSON.parse(
+    fs.readFileSync('./test/0.9/testResponse.json', 'utf8'),
+  );
+  console.log(testResponse.length);
+
+  for (const response of testResponse) {
+    const y_pred = response.y_pred;
+    const y_true = response.y_true;
+
+    const rooms = await prisma.room.findMany();
+    const labelSet = new Set(y_true);
+    for (const labelSetEntry of labelSet.keys()) {
+      const len = y_true.filter(
+        (label) => label == labelSetEntry,
+      ).length;
+      console.log(
+        `Label ${rooms.filter((room) => room.id == labelSetEntry).at(0)?.name} has ${len} entries`,
+      );
+    }
+
+    const correct = y_pred.filter((pred, index) => {
+      return pred.roomId == y_true[index];
+    }).length;
+
+    console.log(`Correct: ${correct}`);
+    console.log(`Total: ${y_true.length}`);
+    console.log(`Accuracy: ${correct / y_true.length}`);
+  }
+}
+
+async function analyzeTestRequest() {
+  const testRequest = JSON.parse(
+    fs.readFileSync('testRequest.json', 'utf8'),
+  );
+  const fingerprintRequests = testRequest.fingerprintRequests;
+  const arrayOfLabels: number[] = testRequest.arrayOfLabels;
+  console.log(
+    `Total fingerprint requests: ${fingerprintRequests.length}`,
+  );
+
+  const rooms = await prisma.room.findMany();
+  const labelSet = new Set(testRequest.arrayOfLabels);
+  for (const labelSetEntry of labelSet.keys()) {
+    const len = arrayOfLabels.filter(
+      (label) => label == labelSetEntry,
+    ).length;
+    console.log(
+      `Label ${rooms.filter((room) => room.id == labelSetEntry).at(0)?.name} has ${len} entries`,
+    );
+  }
+}
 
 let counter = 1;
 
@@ -119,7 +195,13 @@ const doTesting = async (res: Response) => {
 
   const labelSet = new Set(arrayOfLabels);
 
-  const totalResponse: { y_pred: number[]; y_true: number[] }[] = [];
+  const totalResponse: {
+    y_pred: {
+      location: { floorId: number; x: number; y: number };
+      roomId: number;
+    }[];
+    y_true: number[];
+  }[] = [];
   const promises: Promise<any>[] = [];
 
   for (const distinctLabel of labelSet) {
@@ -135,7 +217,7 @@ const doTesting = async (res: Response) => {
           y_pred: y_pred,
           y_true: arrayOfLabels.filter(
             (label) => label === distinctLabel,
-          ),
+          ).filter((label, index) => index < y_pred.length),
         });
       }),
     );
@@ -152,7 +234,16 @@ const getYPred = async (
     data: { fingerprints: { rssi: number; bssid: string }[] };
     npm: string | undefined;
   }[],
-): Promise<number[]> => {
+): Promise<
+  {
+    location: {
+      floorId: number;
+      x: number;
+      y: number;
+    };
+    roomId: number;
+  }[]
+> => {
   const rooms = await prisma.room.findMany({
     include: {
       coordinates: true,
@@ -174,11 +265,16 @@ const getYPred = async (
     await sendWssData(ws, fingerprints);
   };
 
-  while (y_pred.length !== fingerprints.length) {
+  const fifteen_mins = 15 * 60 * 1000;
+  const now = Date.now()
+  const later = now + fifteen_mins;
+
+  while (Date.now() < later && y_pred.length !== fingerprints.length) {
     await delay(1000);
   }
+
   const trueY_pred = y_pred.map((pred) => {
-    const room = rooms
+    let room = rooms
       .filter((room) => room.floorId === pred.floorId)
       .filter((room) =>
         pointinPolygon(
@@ -188,7 +284,22 @@ const getYPred = async (
       )
       .at(0);
 
-    return room === undefined ? -1 : room.id;
+    if (room === undefined) {
+      room = rooms
+        .filter((room) => room.floorId != pred.floorId)
+        .filter((room) =>
+          pointinPolygon(
+            [pred.x, pred.y],
+            room.coordinates.map((coord) => [coord.x, coord.y]),
+          ),
+        )
+        .at(0);
+    }
+
+    return {
+      location: pred,
+      roomId: room === undefined ? pred.floorId * -1 : room.id,
+    };
   });
   return Promise.resolve(trueY_pred);
 };

@@ -1,4 +1,4 @@
-const threshold = 0.90;
+const threshold = 0.3;
 const baseRssi = 0.05; // mwatts tried values: 20, 0.1, 0.01
 const trilaterationScaleFactor = 1e12;
 const speedOfLight = 3e8;
