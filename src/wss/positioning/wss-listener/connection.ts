@@ -24,7 +24,7 @@ const listener = async (
       reconnectionDelay: 1000,
       reconnectionDelayMax: 1000,
     },
-  );;
+  );
 
   let trilaterationCoordinate: Promise<{
     data: {
@@ -204,7 +204,49 @@ const listener = async (
       });
 
       if (fiboSet.has(count)) {
-        client.emit('train', { command: 'Train!' });
+        const fingerprints = await prisma.fingerprint.findMany({
+          select: {
+            id: true,
+            locationId: true,
+          },
+        });
+        const fIds: number[] = [];
+        const fLId: number[] = [];
+        for (const fp of fingerprints) {
+          fIds.push(fp.id);
+          fLId.push(fp.locationId);
+        }
+        const networks = await prisma.network.findMany({
+          select: {
+            bssid: true,
+          },
+        });
+        const fingerprintDetails =
+          await prisma.fingerprintDetail.findMany({
+            select: {
+              fingerprintId: true,
+              bssid: true,
+              rssi: true,
+            },
+          });
+        const fdFIds: number[] = [];
+        const fdBssid: string[] = [];
+        const fdRssi: number[] = [];
+        for (const fd of fingerprintDetails) {
+          fdFIds.push(fd.fingerprintId);
+          fdBssid.push(fd.bssid);
+          fdRssi.push(fd.rssi);
+        }
+        client.emit('train', {
+          command: 'Train!',
+          network: { bssid: networks.map((n) => n.bssid) },
+          fingerprint: { id: fIds, locationId: fLId },
+          fingerprint_detail: {
+            fingerprintId: fdFIds,
+            bssid: fdBssid,
+            rssi: fdRssi,
+          },
+        });
         console.log('ML Training Requested');
       }
     } catch (e) {
