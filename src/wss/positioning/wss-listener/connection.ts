@@ -48,15 +48,7 @@ const listener = async (
               id: parseInt(response[0].locationId),
             },
           });
-          console.log(
-            JSON.stringify({
-              data: {
-                location: [room.poiX, room.poiY],
-                poi: room.name,
-                floorId: room.floorId,
-              },
-            }),
-          );
+
           ws.send(
             JSON.stringify({
               data: {
@@ -131,17 +123,10 @@ const listener = async (
     );
     trilaterationCoordinate.catch((e) => console.error(e));
 
-    // For testing only
-    if (!client.connected) {
-      const data = await trilaterationCoordinate;
-      console.log(JSON.stringify(data));
-      ws.send(JSON.stringify(data));
-    } else {
-      client.emit('predict', {
-        clientId: uuid,
-        data: validationValue.data.fingerprints,
-      });
-    }
+    client.emit('predict', {
+      clientId: uuid,
+      data: validationValue.data.fingerprints,
+    });
 
     console.log('Send Data to Machine Learning Server');
     console.log(
