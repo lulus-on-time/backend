@@ -1,6 +1,6 @@
 const threshold = process.env.THRESHOLD
   ? parseFloat(process.env.THRESHOLD)
-  : 0.5;
+  : 0.6; // best threshold value by experimentation
 // path loss model
 // baseRssi and baseDistance calculated by observation
 const baseRssi = 0.001;
