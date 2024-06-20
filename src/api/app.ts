@@ -18,4 +18,4 @@ app.listen(port, () => {
 
 app.use('/floors', roomRouter);
 app.use('/aps', apRouter);
-app.use('/subjects', subjectRouter)
+app.use('/subjects', subjectRouter);

@@ -2,10 +2,9 @@ import prisma from '../../../db/prisma-client';
 import { AccessPoint } from '@prisma/client';
 import {
   baseRssi,
-  fourPi,
-  freq,
   pathLossExponent,
-  speedOfLight,
+  baseDistance,
+  K
 } from '../constants';
 
 const computeTrilateration = async (
@@ -114,11 +113,6 @@ const computeTrilateration = async (
   }
 
   const distances = trilaterationAps.map((ap) => {
-    // console.log('DESCRIPTION: ', ap.description);
-    // console.log('RSSI: ', ap.rssi);
-    // console.log('ID: ', ap.id);
-    // console.log('AP X: ', ap.xCoordinate);
-    // console.log('AP Y: ', ap.yCoordinate);
     return calculateDistanceFromAp(ap.rssi);
   });
 
@@ -151,8 +145,6 @@ const computeTrilateration = async (
 
   const x = (E * C - B * F) / (A * E - B * D);
   const y = (C * D - A * F) / (B * D - A * E);
-  // console.log('X: ', x);
-  // console.log('Y: ', y);
 
   // location coordinate reversed because lat long format.
   return {
@@ -165,19 +157,7 @@ const computeTrilateration = async (
 };
 
 function calculateDistanceFromAp(rssi: number) {
-  const distance =
-    speedOfLight /
-    fourPi /
-    freq /
-    Math.pow(rssi / baseRssi, 1 / pathLossExponent);
-
-  // console.log('DISTANCE: ', distance);
-  // console.log(
-  //   speedOfLight /
-  //     fourPi /
-  //     freq /
-  //     Math.pow(0.00001 / baseRssi, 1 / pathLossExponent),
-  // );
+  const distance = baseDistance * Math.pow((baseRssi * K / rssi), 1 / pathLossExponent)
   return distance;
 }
 

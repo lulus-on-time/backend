@@ -48,15 +48,7 @@ const listener = async (
               id: parseInt(response[0].locationId),
             },
           });
-          console.log(
-            JSON.stringify({
-              data: {
-                location: [room.poiX, room.poiY],
-                poi: room.name,
-                floorId: room.floorId,
-              },
-            }),
-          );
+
           ws.send(
             JSON.stringify({
               data: {
