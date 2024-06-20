@@ -1,5 +1,9 @@
 FROM node:20.11.0
 
+ARG DATABASE_URL
+
+ENV DATABASE_URL=$DATABASE_URL
+
 WORKDIR /websocket
 
 COPY package.json .
@@ -24,7 +28,7 @@ RUN rm -rf ./src
 
 RUN npm i --omit=dev
 
-CMD [ "npm", "prisma", "migrate-dev", "&&", "node", "dist/wss/app.js" ]
+CMD ["node", "dist/wss/app.js" ]
 
 LABEL name="lulus on time"
 LABEL version="1.0.0"

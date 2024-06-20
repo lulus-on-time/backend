@@ -9,8 +9,6 @@
 #### Development
 1. Use a terminal, and clone this repository with the command <code>git clone https://github.com/lulus-on-time/backend.git \<folder name></code>
 2. Run the command <code>npm i</code> to install all npm packages and their dependecies
-3. Build the docker image with the command <code>docker build -t \<tag> . </code>
-4. Run the newly built docker image with the following environment variables
 3. Create an environment file with the following environment variables
     - WSSPORT | integer | port that the fingerprint processing server will use
     - APIPORT | integer | port that the map server will use
@@ -23,17 +21,18 @@
 #### Production
 1. Use a terminal, and clone this repository with the command <code>git clone https://github.com/lulus-on-time/backend.git \<folder name></code>
 2. Copy the dockerfile in docker/api or docker/wss to the root directory [Note: To do both fingerprint processing server and map server, repeat the production procedure for each of the servers]
-3. Build the docker image with the command <code>docker build -t \<tag> . </code>
-4. Run the newly built docker image with the following environment variables
+3. Build the docker image with the command <code>docker build -t \<tag> --build-arg DATABASE_URL=\<DATABASE_URL> . </code>
+    - DATABASE_URL | string | URL of database
+4. Set up the run variables of the docker image with the following environment variables
     - WSSPORT | integer | port that the fingerprint processing server will use
     - APIPORT | integer | port that the map server will use
     - MLURL | string | URL of machine learning server
     - DATABASE_URL | string | URL of database
     - THRESHOLD | float | a number between 0 and 1 to set the minimum probability that the system will use the machine learning result
 
-resulting in the command <code>docker run -e WSSPORT=\<WSSPORT> -e APIPORT=\<APIPORT> -e MLURL=\<MLURL> -e DATABASE_URL=\<DATABASE_URL> -e THRESHOLD=\<THRESHOLD>  \<imageName></code>
+    resulting in the command <code>docker run -e WSSPORT=\<WSSPORT> -e APIPORT=\<APIPORT> -e MLURL=\<MLURL> -e DATABASE_URL=\<DATABASE_URL> -e THRESHOLD=\<THRESHOLD>  -p \<Host Port>:\<Container Port (usually the same as WSSPORT or APIPORT)> \<imageName></code>
 
-6. 
+5. It is best practice to have WSSPORT or APIPORT similar to the port exposed in the dockerfile (port 80 by default). Please edit the dockerfile to make sure the exposed port and the environment variable port is the same 
 ## API Documentation
 
 ### Rooms
