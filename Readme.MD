@@ -1,3 +1,39 @@
+## Installation Guide
+
+### Prerequisites
+1. Machine Learning Server should already be set up at a contactable URL. See Machine Learning Server Installation Guide in [Installation Guide](https://github.com/lulus-on-time/machine-learning)
+2. An SQL Database should already be running and contactable by your device through a certain URL.
+3. Docker is needed to run the servers in production
+### Steps
+
+#### Development
+1. Use a terminal, and clone this repository with the command <code>git clone https://github.com/lulus-on-time/backend.git \<folder name></code>
+2. Run the command <code>npm i</code> to install all npm packages and their dependecies
+3. Build the docker image with the command <code>docker build -t \<tag> . </code>
+4. Run the newly built docker image with the following environment variables
+3. Create an environment file with the following environment variables
+    - WSSPORT | integer | port that the fingerprint processing server will use
+    - APIPORT | integer | port that the map server will use
+    - MLURL | string | URL of machine learning server
+    - DATABASE_URL | string | URL of database
+    - THRESHOLD | float | a number between 0 and 1 to set the minimum probability that the system will use the machine learning result
+4. Run the command <code>npm run prisma-migrate</code> to initialize the database set in DATABASE_URL to be able to be used by this system
+5. Run the command <code>npm run dev-api</code> or <code>npm run dev-wss</code> to start the map server or fingerprint processing server in development mode
+
+#### Production
+1. Use a terminal, and clone this repository with the command <code>git clone https://github.com/lulus-on-time/backend.git \<folder name></code>
+2. Copy the dockerfile in docker/api or docker/wss to the root directory [Note: To do both fingerprint processing server and map server, repeat the production procedure for each of the servers]
+3. Build the docker image with the command <code>docker build -t \<tag> . </code>
+4. Run the newly built docker image with the following environment variables
+    - WSSPORT | integer | port that the fingerprint processing server will use
+    - APIPORT | integer | port that the map server will use
+    - MLURL | string | URL of machine learning server
+    - DATABASE_URL | string | URL of database
+    - THRESHOLD | float | a number between 0 and 1 to set the minimum probability that the system will use the machine learning result
+
+resulting in the command <code>docker run -e WSSPORT=\<WSSPORT> -e APIPORT=\<APIPORT> -e MLURL=\<MLURL> -e DATABASE_URL=\<DATABASE_URL> -e THRESHOLD=\<THRESHOLD>  \<imageName></code>
+
+6. 
 ## API Documentation
 
 ### Rooms

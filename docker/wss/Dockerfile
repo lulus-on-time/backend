@@ -24,7 +24,7 @@ RUN rm -rf ./src
 
 RUN npm i --omit=dev
 
-CMD [ "node", "dist/wss/app.js" ]
+CMD [ "npm", "prisma", "migrate-dev", "&&", "node", "dist/wss/app.js" ]
 
 LABEL name="lulus on time"
 LABEL version="1.0.0"
