@@ -2,10 +2,9 @@ import prisma from '../../../db/prisma-client';
 import { AccessPoint } from '@prisma/client';
 import {
   baseRssi,
-  fourPi,
-  freq,
   pathLossExponent,
-  speedOfLight,
+  baseDistance,
+  K
 } from '../constants';
 
 const computeTrilateration = async (
@@ -165,11 +164,13 @@ const computeTrilateration = async (
 };
 
 function calculateDistanceFromAp(rssi: number) {
-  const distance =
-    speedOfLight /
-    fourPi /
-    freq /
-    Math.pow(rssi / baseRssi, 1 / pathLossExponent);
+  // const distance =
+  //   speedOfLight /
+  //   fourPi /
+  //   freq /
+  //   Math.pow(rssi / baseRssi, 1 / pathLossExponent);
+
+  const distance = baseDistance * Math.pow((baseRssi * K / rssi), 1 / pathLossExponent)
 
   // console.log('DISTANCE: ', distance);
   // console.log(

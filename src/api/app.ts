@@ -8,6 +8,7 @@ import prisma from '../db/prisma-client';
 import WebSocket from 'ws';
 import fs from 'fs';
 import pointinPolygon from 'point-in-polygon';
+import { number } from 'joi';
 dotenv.config();
 const app = express();
 const port = process.env.APIPORT;
@@ -25,10 +26,12 @@ app.use('/aps', apRouter);
 app.use('/subjects', subjectRouter);
 
 app.get('/', async (req, res) => {
-  doTesting(res);
+  // doTesting(res);
   // getFingerprintsForTesting(res);
   // analyzeTestRequest();
   // analyzeTestResponse()
+  // doLoadTesting(res, 30, true);
+  doLatencyTesting(res);
 });
 
 type TestRequest = {
@@ -47,6 +50,104 @@ type TestResponse = {
   }[];
   y_true: number[];
 }[];
+
+async function doLatencyTesting(res: Response) {
+  const json: TestRequest = JSON.parse(
+    fs.readFileSync('testRequest.json', 'utf8'),
+  );
+
+  const fingerprintRequests = json.fingerprintRequests;
+
+  const ws = new WebSocket('ws://35.219.65.61');
+
+  while (ws.readyState !== ws.OPEN) {
+    await delay(1000);
+  }
+
+  ws.onmessage = () => {
+    tRes.push(Date.now());
+  };
+
+  const tRes: number[] = [];
+  const tReq = await sendWssDataWithTimeStamp(
+    ws,
+    fingerprintRequests.slice(0, 600),
+  );
+
+  if (tReq.length !== tRes.length) {
+    console.log('Length mismatch');
+    res.send({ tReq: tReq, tRes: tRes });
+    return;
+  }
+
+  let totalResponseTime = 0;
+
+  for (let i = 0; i < tReq.length; i++) {
+    totalResponseTime += tRes[i] - tReq[i];
+  }
+
+  res.send({ avgLatency: totalResponseTime / tReq.length });
+}
+
+async function sendWssDataWithTimeStamp(
+  ws: WebSocket,
+  x_test: {
+    reason: string;
+    data: {
+      fingerprints: {
+        bssid: string;
+        rssi: number;
+      }[];
+    };
+    npm: string | undefined;
+  }[],
+): Promise<number[]> {
+  const tReq: number[] = [];
+  for (const x of x_test) {
+    tReq.push(Date.now());
+    ws.send(JSON.stringify(x));
+    await delay(1000);
+  }
+  return tReq;
+}
+
+async function doLoadTesting(
+  res: Response,
+  amt: number,
+  turnOffSAFP: boolean,
+) {
+  const json: TestRequest = JSON.parse(
+    fs.readFileSync('testRequest.json', 'utf8'),
+  );
+
+  const fingerprintRequests = json.fingerprintRequests;
+
+  for (let i = 0; i < amt; i++) {
+    const ws = new WebSocket('ws://35.219.65.61');
+    let randomIndex = Math.floor(
+      Math.random() * (fingerprintRequests.length - 1),
+    );
+    let fingerprint = fingerprintRequests[randomIndex];
+    while (fingerprint.npm === undefined) {
+      randomIndex = Math.floor(
+        Math.random() * (fingerprintRequests.length - 1),
+      );
+      fingerprint = fingerprintRequests[randomIndex];
+    }
+    fingerprintRequests.splice(randomIndex, 1);
+    if (turnOffSAFP) {
+      fingerprint.npm = undefined;
+    }
+    ws.onopen = async () => {
+      await sendWssData(ws, new Array(300).fill(fingerprint));
+      ws.close();
+    };
+  }
+
+  await delay(5 * 60 * 1000);
+
+  res.send('Done');
+}
 
 async function analyzeTestResponse() {
   const testRequest: TestRequest = JSON.parse(
@@ -215,9 +316,9 @@ const doTesting = async (res: Response) => {
       getYPred(x_test).then((y_pred) => {
         totalResponse.push({
           y_pred: y_pred,
-          y_true: arrayOfLabels.filter(
-            (label) => label === distinctLabel,
-          ).filter((label, index) => index < y_pred.length),
+          y_true: arrayOfLabels
+            .filter((label) => label === distinctLabel)
+            .filter((label, index) => index < y_pred.length),
         });
       }),
     );
@@ -266,10 +367,13 @@ const getYPred = async (
   };
 
   const fifteen_mins = 15 * 60 * 1000;
-  const now = Date.now()
+  const now = Date.now();
   const later = now + fifteen_mins;
 
-  while (Date.now() < later && y_pred.length !== fingerprints.length) {
+  while (
+    Date.now() < later &&
+    y_pred.length !== fingerprints.length
+  ) {
     await delay(1000);
   }
 
