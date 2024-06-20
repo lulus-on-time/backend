@@ -571,13 +571,6 @@ router.post('/:id/edit', async (req, res) => {
       return;
     }
   }
-
-  res.status(500).send({
-    error: {
-      status: 500,
-      message: 'An unknown error occurred',
-    },
-  });
 });
 
 export default router;
